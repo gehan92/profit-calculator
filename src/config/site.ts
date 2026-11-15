@@ -9,6 +9,12 @@ export const siteConfig = {
   themeColor: "#0F766E",
 } as const;
 
+/** Full link to a page in one language, e.g. for WhatsApp share text. */
+export function absoluteUrl(locale: string, path: string): string {
+  const cleanPath = path === "/" ? "" : path;
+  return `${siteConfig.url.replace(/\/$/, "")}/${locale}${cleanPath}`;
+}
+
 /** Public pages that are not calculators (Part C1.1). */
 export const publicRoutes = {
   home: "/",

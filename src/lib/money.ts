@@ -88,6 +88,11 @@ export class Money {
     return Money.fromCents(Math.round(this.cents * factor), this.currency);
   }
 
+  /** The amount without its sign, e.g. to show "Loss Rs 3,200" instead of "-Rs 3,200". */
+  abs(): Money {
+    return Money.fromCents(Math.abs(this.cents), this.currency);
+  }
+
   // ------------------------------------------------------------------ checks
 
   get isZero(): boolean {
@@ -116,11 +121,31 @@ export class Money {
   /** Display string in the user's language, e.g. "Rs 25,000.00", "රු. 25,000.00". */
   format(locale: AppLocale, options: MoneyFormatOptions = {}): string {
     const hideCents = options.trimZeroCents === true && this.cents % 100 === 0;
-    return Money.formatter(locale, this.currency, hideCents).format(this.toNumber());
+    const fixedSymbol = FIXED_SYMBOLS[this.currency]?.[locale];
+
+    if (!fixedSymbol) {
+      return Money.formatter(INTL_LOCALE[locale], this.currency, hideCents).format(this.toNumber());
+    }
+
+    const sign = this.isNegative ? "-" : "";
+    const digits = Money.formatter(FIXED_NUMBER_LOCALE, null, hideCents).format(
+      Math.abs(this.toNumber()),
+    );
+    // Non-breaking space, so "Rs" never wraps away from the number.
+    return `${sign}${fixedSymbol} ${digits}`;
   }
 
   toString(): string {
     return `${this.toNumber().toFixed(2)} ${this.currency}`;
+  }
+
+  /** The currency sign shown before amounts, e.g. "Rs" (en), "රු." (si). Used as the input prefix. */
+  static symbol(locale: AppLocale, currency: CurrencyCode = DEFAULT_CURRENCY): string {
+    const fixedSymbol = FIXED_SYMBOLS[currency]?.[locale];
+    if (fixedSymbol) return fixedSymbol;
+
+    const parts = Money.formatter(INTL_LOCALE[locale], currency, true).formatToParts(0);
+    return parts.find((part) => part.type === "currency")?.value ?? currency;
   }
 
   // ----------------------------------------------------------------- private
@@ -131,21 +156,26 @@ export class Money {
     }
   }
 
-  /** Intl formatters are slow to create, so one is cached per locale/currency/style. */
+  /**
+   * Intl formatters are slow to create, so one is cached per locale/currency/style.
+   * `currency: null` gives a plain number ("25,000.00") without a sign.
+   */
   private static formatter(
-    locale: AppLocale,
-    currency: CurrencyCode,
+    intlLocale: string,
+    currency: CurrencyCode | null,
     hideCents: boolean,
   ): Intl.NumberFormat {
-    const key = `${locale}|${currency}|${hideCents}`;
+    const key = `${intlLocale}|${currency}|${hideCents}`;
     let formatter = Money.formatters.get(key);
 
     if (!formatter) {
-      formatter = new Intl.NumberFormat(INTL_LOCALE[locale], {
-        style: "currency",
-        currency,
-        // "Rs" instead of "LKR" in English, as in the document's examples.
-        currencyDisplay: "narrowSymbol",
+      formatter = new Intl.NumberFormat(intlLocale, {
+        ...(currency && {
+          style: "currency",
+          currency,
+          // "Rs" instead of "LKR" in English, as in the document's examples.
+          currencyDisplay: "narrowSymbol",
+        }),
         minimumFractionDigits: hideCents ? 0 : 2,
         maximumFractionDigits: hideCents ? 0 : 2,
       });
@@ -155,3 +185,18 @@ export class Money {
     return formatter;
   }
 }
+
+/**
+ * Currency signs we set ourselves instead of asking Intl.
+ *
+ * Browsers ship different language data: for Sinhala, Chrome prints "Rs" but
+ * Node prints "රු.". The server and the phone must print exactly the same
+ * text, otherwise React reports a hydration error and the page flickers.
+ * Currencies not listed here (added when going global) still use Intl.
+ */
+const FIXED_SYMBOLS: Partial<Record<CurrencyCode, Record<AppLocale, string>>> = {
+  LKR: { en: "Rs", si: "රු.", ta: "Rs" },
+};
+
+/** Sri Lanka writes amounts as 25,000.00 in English, Sinhala and Tamil alike. */
+const FIXED_NUMBER_LOCALE = "en-LK";

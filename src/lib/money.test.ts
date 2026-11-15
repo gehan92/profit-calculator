@@ -50,6 +50,21 @@ describe("Money arithmetic", () => {
   it("refuses fractional cents", () => {
     expect(() => Money.fromCents(10.5)).toThrow(RangeError);
   });
+
+  it("abs removes the sign, for 'Loss Rs 3,200'", () => {
+    expect(Money.fromCents(-320_000).abs().cents).toBe(320_000);
+    expect(Money.fromCents(320_000).abs().cents).toBe(320_000);
+  });
+});
+
+describe("Money.symbol (input prefix)", () => {
+  it.each([
+    ["en", "Rs"],
+    ["si", "රු."],
+    ["ta", "Rs"],
+  ] as const)("%s → %s", (locale, symbol) => {
+    expect(Money.symbol(locale)).toBe(symbol);
+  });
 });
 
 describe("Money.format (Part F5 testing checklist)", () => {

@@ -42,20 +42,95 @@
   "calc": {
     "profit": {
       "name": "Profit",
-      "description": "Sales minus all your costs."
+      "description": "Sales minus all your costs.",
+      "title": "Profit calculator",
+      "intro": "Type your sales and costs. Your profit shows as you type.",
+      "metaTitle": "Free profit calculator",
+      "metaDescription": "Work out your shop's profit and profit % in seconds. Add stock, rent, salary and other costs. Free, no signup.",
+      "sales": "Sales",
+      "costsTitle": "Costs",
+      "addCost": "Add another cost",
+      "removeCost": "Remove {cost}",
+      "totalCosts": "Total costs",
+      "empty": "Type your sales to see your profit.",
+      "tip": "{cost} is {pct} of your sales.",
+      "shareProfit": "My profit today: {amount} ({pct}). Calculate yours free: {link}",
+      "shareProfitNoPct": "My profit today: {amount}. Calculate yours free: {link}",
+      "shareLoss": "My result today: a loss of {amount}. Calculate yours free: {link}",
+      "guideTitle": "How to calculate profit",
+      "guideFormula": "Profit = Sales − all costs. Profit % = Profit ÷ Sales × 100.",
+      "guideExample": "Sales Rs 25,000, stock Rs 15,000 and other costs Rs 1,500. Profit = 25,000 − 16,500 = Rs 8,500, which is 34% of sales."
     },
     "margin": {
       "name": "Margin",
-      "description": "Profit per item, margin and markup."
+      "description": "Profit per item, margin and markup.",
+      "title": "Margin calculator",
+      "intro": "Type what one item costs you and what you sell it for.",
+      "metaTitle": "Free profit margin and markup calculator",
+      "metaDescription": "Find the profit per item, margin % and markup % from cost and selling price. Free, no signup.",
+      "cost": "Cost per item",
+      "price": "Selling price per item",
+      "quantity": "Quantity",
+      "quantityHint": "How many items you sell. Leave empty for 1.",
+      "marginVsMarkup": "Margin is profit as a share of the selling price. Markup is profit as a share of the cost.",
+      "profitPerItem": "Profit per item",
+      "lossPerItem": "Loss per item",
+      "marginPct": "Margin",
+      "markupPct": "Markup",
+      "totalProfit": "Total profit for {quantity, plural, one {# item} other {# items}}",
+      "totalLoss": "Total loss for {quantity, plural, one {# item} other {# items}}",
+      "empty": "Type the cost and selling price to see your margin.",
+      "shareProfit": "Cost {cost}, price {price}: profit {amount} per item ({margin} margin). Calculate yours free: {link}",
+      "shareLoss": "Cost {cost}, price {price}: loss {amount} per item. Calculate yours free: {link}",
+      "guideTitle": "How to calculate margin and markup",
+      "guideFormula": "Profit per item = Price − Cost. Margin % = Profit ÷ Price × 100. Markup % = Profit ÷ Cost × 100.",
+      "guideExample": "Cost Rs 85, price Rs 110, 100 items. Profit per item Rs 25, margin 22.7%, markup 29.4%, total profit Rs 2,500."
     },
     "price": {
       "name": "Selling price",
-      "description": "The right price for the profit you want."
+      "description": "The right price for the profit you want.",
+      "title": "Selling price calculator",
+      "intro": "Find the price that gives you the profit you want.",
+      "metaTitle": "Free selling price calculator",
+      "metaDescription": "Find the right selling price from your cost and the markup or margin you want. Free, no signup."
     },
     "breakEven": {
       "name": "Break-even",
-      "description": "Sales you need to cover your costs."
+      "description": "Sales you need to cover your costs.",
+      "title": "Break-even calculator",
+      "intro": "See how much you must sell to cover your monthly costs.",
+      "metaTitle": "Free break-even calculator",
+      "metaDescription": "Find the sales you need each month and each day to cover your fixed costs. Free, no signup."
     }
+  },
+  "calcUi": {
+    "inputsTitle": "Your numbers",
+    "profit": "Profit",
+    "loss": "Loss",
+    "whatsapp": "WhatsApp",
+    "copy": "Copy",
+    "copied": "Result copied",
+    "copyFailed": "Could not copy. Please try again.",
+    "reset": "Reset",
+    "save": "Save to my records",
+    "remembered": "Your numbers stay on this device only.",
+    "formula": "Formula",
+    "example": "Example",
+    "otherTools": "Other free calculators"
+  },
+  "categories": {
+    "stock": "Stock",
+    "rent": "Rent",
+    "salary": "Salary",
+    "electricity": "Electricity",
+    "water": "Water",
+    "transport": "Transport",
+    "family_use": "Family use",
+    "owner_salary": "Owner salary",
+    "wastage": "Wastage",
+    "other": "Other",
+    "sales": "Sales",
+    "other_income": "Other income"
   },
   "footer": {
     "about": "About",

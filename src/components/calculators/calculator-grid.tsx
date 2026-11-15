@@ -2,6 +2,7 @@ import { ArrowRightIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { CALCULATORS, type CalculatorId } from "@/config/calculators";
 import { Link } from "@/i18n/navigation";
+import { cn } from "@/lib/utils";
 import { CalculatorIcon } from "./calculator-icon";
 
 interface CalculatorGridProps {
@@ -14,7 +15,12 @@ export async function CalculatorGrid({ exclude }: CalculatorGridProps) {
   const calculators = CALCULATORS.filter((calculator) => calculator.id !== exclude);
 
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <ul
+      className={cn(
+        "grid gap-3 sm:grid-cols-2",
+        calculators.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4",
+      )}
+    >
       {calculators.map((calculator) => (
         <li key={calculator.id}>
           <Link
