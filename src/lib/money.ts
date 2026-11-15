@@ -1,0 +1,157 @@
+import { INTL_LOCALE, type AppLocale } from "@/i18n/config";
+
+/** ISO 4217 currency code, stored per business (default LKR). */
+export type CurrencyCode = string;
+
+export const DEFAULT_CURRENCY: CurrencyCode = "LKR";
+
+export interface MoneyFormatOptions {
+  /** Hide ".00" when the amount is whole, e.g. on big result cards (Part E2). */
+  trimZeroCents?: boolean;
+}
+
+/** Thrown when two amounts in different currencies are combined. */
+export class CurrencyMismatchError extends Error {
+  constructor(left: CurrencyCode, right: CurrencyCode) {
+    super(`Cannot combine ${left} with ${right}`);
+    this.name = "CurrencyMismatchError";
+  }
+}
+
+/**
+ * An amount of money, stored as whole cents to avoid floating-point errors.
+ *
+ * Money is immutable: `add` and `subtract` return a new instance.
+ * This matches the database, where every amount is a `bigint` of cents.
+ *
+ * @example
+ *   const sales = Money.parse("25,000");          // 2_500_000 cents
+ *   sales.format("en");                            // "Rs 25,000.00"
+ */
+export class Money {
+  /** Up to 2 decimals, optional thousands separators: "25,000", "1500.5", ".75". */
+  private static readonly INPUT_PATTERN = /^(\d*)(?:\.(\d{0,2}))?$/;
+
+  private static readonly formatters = new Map<string, Intl.NumberFormat>();
+
+  private constructor(
+    readonly cents: number,
+    readonly currency: CurrencyCode,
+  ) {}
+
+  // ---------------------------------------------------------------- creation
+
+  static fromCents(cents: number, currency: CurrencyCode = DEFAULT_CURRENCY): Money {
+    if (!Number.isSafeInteger(cents)) {
+      throw new RangeError(`Money needs a whole number of cents, got ${cents}`);
+    }
+    return new Money(cents, currency);
+  }
+
+  static zero(currency: CurrencyCode = DEFAULT_CURRENCY): Money {
+    return new Money(0, currency);
+  }
+
+  /**
+   * Reads what a person typed into a money field.
+   * Returns `null` for empty or invalid input (negative, letters, 3+ decimals),
+   * so the UI can show a hint instead of NaN (Part D1 shared rules).
+   */
+  static parse(input: string, currency: CurrencyCode = DEFAULT_CURRENCY): Money | null {
+    const cleaned = input.replace(/[,\s]/g, "");
+    const match = Money.INPUT_PATTERN.exec(cleaned);
+    if (!cleaned || cleaned === "." || !match) return null;
+
+    const [, wholePart, fractionPart = ""] = match;
+    const cents = Number(wholePart || "0") * 100 + Number(fractionPart.padEnd(2, "0"));
+
+    return Number.isSafeInteger(cents) ? new Money(cents, currency) : null;
+  }
+
+  static sum(amounts: readonly Money[], currency: CurrencyCode = DEFAULT_CURRENCY): Money {
+    return amounts.reduce((total, amount) => total.add(amount), Money.zero(currency));
+  }
+
+  // -------------------------------------------------------------- arithmetic
+
+  add(other: Money): Money {
+    this.assertSameCurrency(other);
+    return Money.fromCents(this.cents + other.cents, this.currency);
+  }
+
+  subtract(other: Money): Money {
+    this.assertSameCurrency(other);
+    return Money.fromCents(this.cents - other.cents, this.currency);
+  }
+
+  multiply(factor: number): Money {
+    return Money.fromCents(Math.round(this.cents * factor), this.currency);
+  }
+
+  // ------------------------------------------------------------------ checks
+
+  get isZero(): boolean {
+    return this.cents === 0;
+  }
+
+  get isNegative(): boolean {
+    return this.cents < 0;
+  }
+
+  get isPositive(): boolean {
+    return this.cents > 0;
+  }
+
+  equals(other: Money): boolean {
+    return this.cents === other.cents && this.currency === other.currency;
+  }
+
+  // -------------------------------------------------------------- formatting
+
+  /** Amount in the main unit, e.g. 2_500_000 cents → 25000. For charts, not for maths. */
+  toNumber(): number {
+    return this.cents / 100;
+  }
+
+  /** Display string in the user's language, e.g. "Rs 25,000.00", "රු. 25,000.00". */
+  format(locale: AppLocale, options: MoneyFormatOptions = {}): string {
+    const hideCents = options.trimZeroCents === true && this.cents % 100 === 0;
+    return Money.formatter(locale, this.currency, hideCents).format(this.toNumber());
+  }
+
+  toString(): string {
+    return `${this.toNumber().toFixed(2)} ${this.currency}`;
+  }
+
+  // ----------------------------------------------------------------- private
+
+  private assertSameCurrency(other: Money): void {
+    if (other.currency !== this.currency) {
+      throw new CurrencyMismatchError(this.currency, other.currency);
+    }
+  }
+
+  /** Intl formatters are slow to create, so one is cached per locale/currency/style. */
+  private static formatter(
+    locale: AppLocale,
+    currency: CurrencyCode,
+    hideCents: boolean,
+  ): Intl.NumberFormat {
+    const key = `${locale}|${currency}|${hideCents}`;
+    let formatter = Money.formatters.get(key);
+
+    if (!formatter) {
+      formatter = new Intl.NumberFormat(INTL_LOCALE[locale], {
+        style: "currency",
+        currency,
+        // "Rs" instead of "LKR" in English, as in the document's examples.
+        currencyDisplay: "narrowSymbol",
+        minimumFractionDigits: hideCents ? 0 : 2,
+        maximumFractionDigits: hideCents ? 0 : 2,
+      });
+      Money.formatters.set(key, formatter);
+    }
+
+    return formatter;
+  }
+}

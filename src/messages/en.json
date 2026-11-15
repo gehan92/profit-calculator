@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "title": "Profit Calculator — Know your real profit in 10 seconds",
+    "titleTemplate": "%s · Profit Calculator",
+    "description": "Free profit, margin, selling price and break-even calculators for small businesses. No signup needed."
+  },
+  "common": {
+    "appName": "Profit Calculator",
+    "skipToContent": "Skip to content",
+    "free": "Free",
+    "backHome": "Back to home"
+  },
+  "nav": {
+    "mainMenu": "Main menu",
+    "calculators": "Calculators",
+    "tryMyBusiness": "My Business (try)",
+    "login": "Log in"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "home": {
+    "badge": "Free · No signup",
+    "heroTitle": "Know your real profit in 10 seconds.",
+    "heroSubtitle": "Simple calculators for shops, home sellers, drivers and market sellers.",
+    "ctaCalculate": "Calculate profit",
+    "ctaTools": "See all calculators",
+    "previewLabel": "Example",
+    "previewSales": "Sales today",
+    "previewStock": "Stock bought",
+    "previewOther": "Other costs",
+    "previewProfit": "Profit",
+    "toolsTitle": "Free calculators",
+    "toolsSubtitle": "Results update as you type. Share them on WhatsApp.",
+    "saveTitle": "Save your daily records?",
+    "saveBody": "Add sales and costs each evening and see your profit for the whole month.",
+    "saveCta": "Start",
+    "trustPrivate": "Your records are private",
+    "trustNoAds": "No ads inside your records",
+    "trustLanguages": "English, සිංහල and தமிழ்"
+  },
+  "calc": {
+    "profit": {
+      "name": "Profit",
+      "description": "Sales minus all your costs."
+    },
+    "margin": {
+      "name": "Margin",
+      "description": "Profit per item, margin and markup."
+    },
+    "price": {
+      "name": "Selling price",
+      "description": "The right price for the profit you want."
+    },
+    "breakEven": {
+      "name": "Break-even",
+      "description": "Sales you need to cover your costs."
+    }
+  },
+  "footer": {
+    "about": "About",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "feedback": "Feedback",
+    "tagline": "Free tools that help small businesses see their real profit."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This page doesn't exist or has moved."
+  }
+}
