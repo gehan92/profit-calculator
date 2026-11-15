@@ -17,8 +17,8 @@ export interface NumberFieldProps extends AmountInputOptions {
   /** Shown inside the field on the right, e.g. "%". */
   suffix?: string;
   placeholder?: string;
-  /** Short help or error text under the field. */
-  hint?: string;
+  /** Short help or error text under the field (may contain a link). */
+  hint?: ReactNode;
   invalid?: boolean;
   /** Extra control next to the label, e.g. a remove button. */
   labelAction?: ReactNode;

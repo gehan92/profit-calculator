@@ -2,7 +2,12 @@ import { LightbulbIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type ResultTone = "profit" | "loss";
+/**
+ * profit: green, loss: red (Part E1).
+ * neutral: teal brand colour, for results that are not a profit or a loss
+ * (a selling price, the sales needed to break even).
+ */
+export type ResultTone = "profit" | "loss" | "neutral";
 
 export interface ResultDetail {
   label: string;
@@ -10,7 +15,7 @@ export interface ResultDetail {
 }
 
 interface ResultCardProps {
-  /** The word next to the number: "Profit" or "Loss" (colour alone is not enough). */
+  /** The words above the number, e.g. "Profit" or "Loss" (colour alone is not enough). */
   label: string;
   /** The big number, e.g. "Rs 8,500". `null` shows `emptyText` instead. */
   amount: string | null;
@@ -28,6 +33,7 @@ interface ResultCardProps {
 const TONE_STYLES: Record<ResultTone, { panel: string; label: string; amount: string }> = {
   profit: { panel: "bg-profit/10", label: "text-profit-foreground", amount: "text-profit" },
   loss: { panel: "bg-loss/10", label: "text-loss", amount: "text-loss" },
+  neutral: { panel: "bg-primary-soft/70", label: "text-primary", amount: "text-primary" },
 };
 
 /**
