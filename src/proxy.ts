@@ -6,6 +6,7 @@ import {
   dashboardPath,
   isLoginPath,
   isProtectedPath,
+  isTryPath,
   loginPath,
   safeNextPath,
   splitLocale,
@@ -18,7 +19,8 @@ import { copySessionTo, refreshSession } from "@/lib/supabase/proxy-session";
  * 1. next-intl picks the language (/en, /si, /ta).
  * 2. Supabase refreshes the login cookie (only when one exists).
  * 3. Guards: logged-out users are sent from /dashboard to /login?next=...,
- *    logged-in users are sent from /login to where they wanted to go.
+ *    logged-in users are sent from /login to where they wanted to go and
+ *    from /try to their dashboard.
  *
  * Proxy is only the first guard. Pages, Server Actions and database RLS
  * always check access again.
@@ -49,6 +51,12 @@ export default async function proxy(request: NextRequest) {
   if (userId && isLoginPath(path)) {
     const next = safeNextPath(request.nextUrl.searchParams.get("next"), dashboardPath(pageLocale));
     return redirectKeepingSession(request, response, next);
+  }
+
+  // Logged-in people keep records in their account, not on the phone (Part F2 routes table).
+  // The dashboard offers to move any records left on this phone.
+  if (userId && isTryPath(path)) {
+    return redirectKeepingSession(request, response, dashboardPath(pageLocale));
   }
 
   return response;

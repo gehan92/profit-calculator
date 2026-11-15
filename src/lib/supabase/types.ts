@@ -186,7 +186,7 @@ export type Database = {
           category: string
           client_id: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
           entry_date: string
           id: string
           note: string | null
@@ -198,7 +198,7 @@ export type Database = {
           category: string
           client_id?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           entry_date: string
           id?: string
           note?: string | null
@@ -210,7 +210,7 @@ export type Database = {
           category?: string
           client_id?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           entry_date?: string
           id?: string
           note?: string | null
@@ -260,7 +260,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           business_id: string
-          created_by: string
+          created_by: string | null
           expires_at: string
           id: string
           role: Database["public"]["Enums"]["member_role"]
@@ -269,7 +269,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           business_id: string
-          created_by?: string
+          created_by?: string | null
           expires_at?: string
           id?: string
           role: Database["public"]["Enums"]["member_role"]
@@ -278,7 +278,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           business_id?: string
-          created_by?: string
+          created_by?: string | null
           expires_at?: string
           id?: string
           role?: Database["public"]["Enums"]["member_role"]

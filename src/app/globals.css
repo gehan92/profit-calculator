@@ -133,6 +133,8 @@
   html {
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
+    /* Fields the browser scrolls to (focus, #links) stop below the sticky header. */
+    scroll-padding-top: 6rem;
   }
 
   /* Body text is 16px (Part E2); never smaller than 14px anywhere. */

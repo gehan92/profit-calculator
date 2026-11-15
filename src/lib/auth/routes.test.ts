@@ -3,6 +3,7 @@ import {
   dashboardPath,
   isLoginPath,
   isProtectedPath,
+  isTryPath,
   loginPath,
   safeNextPath,
   splitLocale,
@@ -40,6 +41,14 @@ describe("isLoginPath", () => {
   it("matches only the login page", () => {
     expect(isLoginPath("/login")).toBe(true);
     expect(isLoginPath("/login-help")).toBe(false);
+  });
+});
+
+describe("isTryPath", () => {
+  it("matches only guest My Business", () => {
+    expect(isTryPath("/try")).toBe(true);
+    expect(isTryPath("/trying")).toBe(false);
+    expect(isTryPath("/dashboard")).toBe(false);
   });
 });
 

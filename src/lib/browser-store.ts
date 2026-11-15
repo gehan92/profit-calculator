@@ -6,7 +6,8 @@
  * so the calculators keep working even when nothing can be saved.
  *
  * Components subscribe to changes, which is what React's
- * `useSyncExternalStore` needs (see use-remembered-state.ts).
+ * `useSyncExternalStore` needs (see use-remembered-state.ts). Changes made
+ * in another tab of the same site are picked up too.
  */
 export class BrowserStore {
   private readonly memory = new Map<string, string | null>();
@@ -30,13 +31,33 @@ export class BrowserStore {
     } catch {
       // Not saved on this device, but still kept in memory for this visit.
     }
-    this.listeners.forEach((listener) => listener());
+    this.notify();
   }
 
   subscribe = (listener: () => void): (() => void) => {
+    if (this.listeners.size === 0 && typeof window !== "undefined") {
+      window.addEventListener("storage", this.onOtherTabChange);
+    }
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+
+    return () => {
+      this.listeners.delete(listener);
+      if (this.listeners.size === 0 && typeof window !== "undefined") {
+        window.removeEventListener("storage", this.onOtherTabChange);
+      }
+    };
   };
+
+  /** Another tab saved something: forget our copy and read it fresh. */
+  private readonly onOtherTabChange = (event: StorageEvent) => {
+    if (event.key === null) this.memory.clear();
+    else this.memory.delete(event.key);
+    this.notify();
+  };
+
+  private notify(): void {
+    this.listeners.forEach((listener) => listener());
+  }
 }
 
 /** One shared store for the whole app. */

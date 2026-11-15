@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { signOut } from "@/actions/auth";
+import { GuestImportPrompt } from "@/components/dashboard/guest-import-prompt";
 import { ShopNameForm } from "@/components/dashboard/shop-name-form";
 import { SignupTracker } from "@/components/dashboard/signup-tracker";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,9 @@ async function DashboardContent({ params, searchParams }: PageProps<"/[locale]/d
       </section>
 
       {askShopName && <ShopNameForm businessId={membership.business.id} />}
+
+      {/* Records made in guest mode on this phone (Part D2 "Move guest data", Owner). */}
+      {membership.role === "owner" && <GuestImportPrompt />}
 
       <section className="flex flex-col gap-4 rounded-2xl border bg-background p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-start gap-3">

@@ -367,6 +367,48 @@ describe("Guest import: no duplicates on retry (Part D2)", () => {
     );
     expect(stored.rows[0].n).toBe(1);
   });
+
+  it("12 local entries become 12 stored entries, and a retry adds none (Part F5)", async () => {
+    const clientIds = Array.from(
+      { length: 12 },
+      (_, i) => `7f1c1d3e-2222-4c4c-9a9a-${String(i).padStart(12, "0")}`,
+    );
+    // One statement for all rows, like the upsert importGuestEntries sends.
+    const importAll = () =>
+      db.as(ids.ownerA, (s) =>
+        s.query(
+          `insert into entries (business_id, type, category, amount_cents, entry_date, client_id)
+           select $1, 'expense', 'stock', 10000, current_date, unnest($2::uuid[])
+           on conflict (business_id, client_id) do nothing
+           returning client_id`,
+          [ids.shopA, clientIds],
+        ),
+      );
+
+    const first = await importAll();
+    const retry = await importAll();
+    expect(first.rows).toHaveLength(12);
+    expect(retry.rows).toHaveLength(0); // what EntryRepository reports as "already saved"
+
+    const stored = await db.asService<{ n: number }>(
+      "select count(*)::int as n from entries where client_id = any($1::uuid[])",
+      [clientIds],
+    );
+    expect(stored.rows[0].n).toBe(12);
+  });
+
+  it("another Owner cannot import entries into someone else's shop", async () => {
+    await expect(
+      db.as(ids.ownerB, (s) =>
+        s.query(
+          `insert into entries (business_id, type, category, amount_cents, entry_date, client_id)
+           values ($1, 'income', 'sales', 50000, current_date, '7f1c1d3e-3333-4c4c-9a9a-000000000001')
+           on conflict (business_id, client_id) do nothing`,
+          [ids.shopA],
+        ),
+      ),
+    ).rejects.toThrow(RLS_ERROR);
+  });
 });
 
 describe("Feedback: anyone can send, only the team can read", () => {

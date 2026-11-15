@@ -1,3 +1,4 @@
+import { publicRoutes } from "@/config/site";
 import { DEFAULT_LOCALE, isAppLocale, type AppLocale } from "@/i18n/config";
 
 /**
@@ -7,6 +8,8 @@ import { DEFAULT_LOCALE, isAppLocale, type AppLocale } from "@/i18n/config";
 export const authRoutes = {
   login: "/login",
   dashboard: "/dashboard",
+  /** Guest "My Business (try)"; logged-in people use the dashboard instead. */
+  tryMyBusiness: publicRoutes.tryMyBusiness,
   /** Outside `[locale]`: Supabase sends people back here after Google or the email link. */
   callback: "/auth/callback",
 } as const;
@@ -29,6 +32,11 @@ export function isProtectedPath(path: string): boolean {
 /** True for the login page itself. */
 export function isLoginPath(path: string): boolean {
   return path === authRoutes.login;
+}
+
+/** True for guest My Business, which sends logged-in people to their dashboard (Part F2 routes). */
+export function isTryPath(path: string): boolean {
+  return path === authRoutes.tryMyBusiness;
 }
 
 /**
