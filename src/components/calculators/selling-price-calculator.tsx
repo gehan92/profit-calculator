@@ -156,7 +156,7 @@ export function SellingPriceCalculator() {
           emptyText={marginTooHigh ? t("marginTooHigh") : t("empty")}
           details={details}
         >
-          <ResultActions shareText={shareText} onReset={resetForm} />
+          <ResultActions calculator="price" shareText={shareText} onReset={resetForm} />
         </ResultCard>
       </div>
     </div>

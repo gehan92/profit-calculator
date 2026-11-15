@@ -1,4 +1,6 @@
 import { ArrowRightIcon, BadgeCheckIcon, LanguagesIcon, LockKeyholeIcon } from "lucide-react";
+import type { Metadata } from "next";
+import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { CalculatorGrid } from "@/components/calculators/calculator-grid";
 import { ProfitPreview } from "@/components/home/profit-preview";
@@ -6,6 +8,24 @@ import { Button } from "@/components/ui/button";
 import { getCalculator } from "@/config/calculators";
 import { publicRoutes } from "@/config/site";
 import { Link } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
+import { pageMetadata } from "@/lib/seo";
+
+/** Home page title, description, hreflang links and share preview (Part F4.5). */
+export async function generateMetadata({ params }: PageProps<"/[locale]">): Promise<Metadata> {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) return {};
+
+  const t = await getTranslations({ locale });
+  return pageMetadata({
+    locale,
+    path: publicRoutes.home,
+    title: t("metadata.title"),
+    description: t("metadata.description"),
+    siteName: t("common.appName"),
+    absoluteTitle: true,
+  });
+}
 
 /** Public home (wireframe in Part C2). */
 export default async function HomePage() {

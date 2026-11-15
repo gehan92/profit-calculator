@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
@@ -20,7 +21,10 @@ export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Pr
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
 
-  const t = await getTranslations({ locale, namespace: "metadata" });
+  const [t, tCommon] = await Promise.all([
+    getTranslations({ locale, namespace: "metadata" }),
+    getTranslations({ locale, namespace: "common" }),
+  ]);
 
   return {
     metadataBase: new URL(siteConfig.url),
@@ -28,6 +32,13 @@ export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Pr
     description: t("description"),
     applicationName: t("title"),
     formatDetection: { telephone: false },
+    openGraph: { type: "website", siteName: tCommon("appName") },
+    // Big preview image when a link is shared (image: app/opengraph-image.tsx).
+    twitter: { card: "summary_large_image" },
+    // Google Search Console "HTML tag" check (Part F4.5); empty until launch day.
+    verification: siteConfig.googleSiteVerification
+      ? { google: siteConfig.googleSiteVerification }
+      : undefined,
   };
 }
 
@@ -46,6 +57,8 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
       <body className="flex min-h-dvh flex-col">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
         <Toaster theme="light" position="top-center" richColors />
+        {/* Page views (Part F4.6). Sends nothing during local development. */}
+        <Analytics />
       </body>
     </html>
   );

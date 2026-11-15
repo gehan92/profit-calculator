@@ -174,7 +174,7 @@ export function ProfitCalculator() {
               : undefined
           }
         >
-          <ResultActions shareText={shareText} onReset={resetForm} />
+          <ResultActions calculator="profit" shareText={shareText} onReset={resetForm} />
         </ResultCard>
       </div>
     </div>

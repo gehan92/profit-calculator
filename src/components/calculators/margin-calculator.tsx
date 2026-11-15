@@ -127,7 +127,7 @@ export function MarginCalculator() {
               : []
           }
         >
-          <ResultActions shareText={shareText} onReset={resetForm} />
+          <ResultActions calculator="margin" shareText={shareText} onReset={resetForm} />
         </ResultCard>
       </div>
     </div>

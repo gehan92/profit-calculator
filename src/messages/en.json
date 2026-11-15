@@ -59,7 +59,25 @@
       "shareLoss": "My result today: a loss of {amount}. Calculate yours free: {link}",
       "guideTitle": "How to calculate profit",
       "guideFormula": "Profit = Sales − all costs. Profit % = Profit ÷ Sales × 100.",
-      "guideExample": "Sales Rs 25,000, stock Rs 15,000 and other costs Rs 1,500. Profit = 25,000 − 16,500 = Rs 8,500, which is 34% of sales."
+      "guideExample": "Sales Rs 25,000, stock Rs 15,000 and other costs Rs 1,500. Profit = 25,000 − 16,500 = Rs 8,500, which is 34% of sales.",
+      "faq": [
+        {
+          "q": "What is the difference between profit and sales?",
+          "a": "Sales is all the money that comes in. Profit is what is left after you pay every cost: stock, rent, salaries, electricity, transport and other costs."
+        },
+        {
+          "q": "What is a good profit percentage for a small shop?",
+          "a": "It depends on what you sell. Shops that sell everyday items often have a lower %, and shops with special or handmade items a higher %. The best guide is your own number: check it every month and see if it goes up or down."
+        },
+        {
+          "q": "Should I count goods my family takes from the shop?",
+          "a": "Yes. Goods taken for home use are a real cost, even when no money changes hands. Add them as a cost, so your profit on paper is not higher than the money in your pocket."
+        },
+        {
+          "q": "Why does it show a loss?",
+          "a": "For the numbers you typed, your costs are higher than your sales. Check that every cost is correct, then look at the biggest cost first. The tip under the result tells you which one it is."
+        }
+      ]
     },
     "margin": {
       "name": "Margin",
@@ -84,7 +102,25 @@
       "shareLoss": "Cost {cost}, price {price}: loss {amount} per item. Calculate yours free: {link}",
       "guideTitle": "How to calculate margin and markup",
       "guideFormula": "Profit per item = Price − Cost. Margin % = Profit ÷ Price × 100. Markup % = Profit ÷ Cost × 100.",
-      "guideExample": "Cost Rs 85, price Rs 110, 100 items. Profit per item Rs 25, margin 22.7%, markup 29.4%, total profit Rs 2,500."
+      "guideExample": "Cost Rs 85, price Rs 110, 100 items. Profit per item Rs 25, margin 22.7%, markup 29.4%, total profit Rs 2,500.",
+      "faq": [
+        {
+          "q": "What is the difference between margin and markup?",
+          "a": "Margin is the profit divided by the selling price. Markup is the profit divided by the cost. For the same item, the markup % is always higher than the margin %."
+        },
+        {
+          "q": "How do I calculate the margin of one item?",
+          "a": "Take the cost away from the selling price to get the profit per item. Then divide it by the selling price and multiply by 100. Example: (110 − 85) ÷ 110 × 100 = 22.7%."
+        },
+        {
+          "q": "Why can't the margin be 100% or more?",
+          "a": "A 100% margin would mean the item cost you nothing. As long as an item costs something, the margin stays below 100%. Markup has no such limit."
+        },
+        {
+          "q": "What does the quantity do?",
+          "a": "It multiplies the profit per item, so you can see the total profit for a batch, for example 100 bars of soap."
+        }
+      ]
     },
     "price": {
       "name": "Selling price",
@@ -114,7 +150,25 @@
       "shareMargin": "Cost {cost} with a {pct} margin: sell for {price}. Calculate yours free: {link}",
       "guideTitle": "How to find the selling price",
       "guideFormula": "Markup: Price = Cost × (1 + % ÷ 100). Margin: Price = Cost ÷ (1 − % ÷ 100).",
-      "guideExample": "Cost Rs 85 with 20%: markup gives Rs 102.00 and margin gives Rs 106.25. Rounded up to the next Rs 10, the markup price is Rs 110."
+      "guideExample": "Cost Rs 85 with 20%: markup gives Rs 102.00 and margin gives Rs 106.25. Rounded up to the next Rs 10, the markup price is Rs 110.",
+      "faq": [
+        {
+          "q": "Should I use markup or margin?",
+          "a": "Use markup if you think \"add 20% to my cost\". Use margin if you think \"20% of the price should be profit\". For the same %, margin gives a higher price."
+        },
+        {
+          "q": "Why round the price up?",
+          "a": "Round prices like Rs 105 or Rs 110 are easier for customers and for giving change. Rounding up never lowers your profit."
+        },
+        {
+          "q": "How do I choose the profit %?",
+          "a": "Look at what similar shops charge, then check the result with the margin calculator. Remember that this % must also pay your rent, salaries and other fixed costs."
+        },
+        {
+          "q": "Can I use it for services?",
+          "a": "Yes. Put the cost of your materials and your time as the cost, then choose the profit you want."
+        }
+      ]
     },
     "breakEven": {
       "name": "Break-even",
@@ -138,7 +192,25 @@
       "share": "To cover {fixed} of fixed costs at a {margin} margin, I need sales of {monthly} a month ({daily} a day). Calculate yours free: {link}",
       "guideTitle": "How to calculate your break-even point",
       "guideFormula": "Sales needed per month = Fixed costs ÷ (Margin % ÷ 100). Per day = Monthly sales ÷ open days.",
-      "guideExample": "Fixed costs Rs 60,000 and a 20% margin: 60,000 ÷ 0.20 = Rs 300,000 a month. With 26 open days, that is about Rs 11,538 a day."
+      "guideExample": "Fixed costs Rs 60,000 and a 20% margin: 60,000 ÷ 0.20 = Rs 300,000 a month. With 26 open days, that is about Rs 11,538 a day.",
+      "faq": [
+        {
+          "q": "What is the break-even point?",
+          "a": "It is the amount you must sell to pay all your fixed costs. Sell more and you make a profit; sell less and you make a loss."
+        },
+        {
+          "q": "What are fixed costs?",
+          "a": "Costs you pay every month even if you sell nothing: rent, salaries, electricity, loan payments, internet and similar costs. Stock you buy to sell is not a fixed cost."
+        },
+        {
+          "q": "Where do I find my average margin?",
+          "a": "Use the margin calculator for your main products and take a typical value. If you sell many different items, divide your monthly profit before fixed costs by your monthly sales."
+        },
+        {
+          "q": "Why does a higher margin lower the break-even point?",
+          "a": "Each sale leaves more money to pay the fixed costs, so you need fewer sales to cover them."
+        }
+      ]
     }
   },
   "calcUi": {
@@ -154,6 +226,7 @@
     "remembered": "Your numbers stay on this device only.",
     "formula": "Formula",
     "example": "Example",
+    "faqTitle": "Questions and answers",
     "otherTools": "Other free calculators"
   },
   "categories": {

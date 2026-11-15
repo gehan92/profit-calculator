@@ -28,6 +28,13 @@ export const INTL_LOCALE: Record<AppLocale, string> = {
   ta: "ta-LK",
 };
 
+/** Locale names used in Open Graph tags for WhatsApp/Facebook previews. */
+export const OPEN_GRAPH_LOCALE: Record<AppLocale, string> = {
+  en: "en_LK",
+  si: "si_LK",
+  ta: "ta_LK",
+};
+
 export function isAppLocale(value: unknown): value is AppLocale {
   return typeof value === "string" && (LOCALES as readonly string[]).includes(value);
 }

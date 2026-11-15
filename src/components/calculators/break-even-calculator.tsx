@@ -163,7 +163,7 @@ export function BreakEvenCalculator() {
           }
           tip={result ? t("explain") : undefined}
         >
-          <ResultActions shareText={shareText} onReset={resetForm} />
+          <ResultActions calculator="breakEven" shareText={shareText} onReset={resetForm} />
         </ResultCard>
       </div>
     </div>

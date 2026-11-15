@@ -3,15 +3,17 @@ import type { Metadata } from "next";
 import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import type { CalculatorId } from "@/config/calculators";
+import { getCalculator, type CalculatorId } from "@/config/calculators";
 import { routing } from "@/i18n/routing";
+import { pageMetadata } from "@/lib/seo";
+import { CalculatorFaq } from "./calculator-faq";
 import { CalculatorGrid } from "./calculator-grid";
 import { CalculatorIcon } from "./calculator-icon";
 
 /**
- * Page title and description for a calculator, in the page's language.
+ * Title, description, hreflang links and share preview for a calculator,
+ * in the page's language (Part F4.5).
  * Usage in a page file: `export const generateMetadata = calculatorMetadata("profit");`
- * (hreflang alternates and Open Graph come on Day 5, Part F4.5.)
  */
 export function calculatorMetadata(id: CalculatorId) {
   return async function generateMetadata({
@@ -22,8 +24,14 @@ export function calculatorMetadata(id: CalculatorId) {
     const { locale } = await params;
     if (!hasLocale(routing.locales, locale)) return {};
 
-    const t = await getTranslations({ locale, namespace: "calc" });
-    return { title: t(`${id}.metaTitle`), description: t(`${id}.metaDescription`) };
+    const t = await getTranslations({ locale });
+    return pageMetadata({
+      locale,
+      path: getCalculator(id).href,
+      title: t(`calc.${id}.metaTitle`),
+      description: t(`calc.${id}.metaDescription`),
+      siteName: t("common.appName"),
+    });
   };
 }
 
@@ -37,7 +45,7 @@ interface CalculatorPageProps {
 
 /**
  * The layout every calculator page shares (Part C2 wireframe, Part F4.5):
- * H1 and intro, the calculator, a short guide, then links to the other tools.
+ * H1 and intro, the calculator, a short guide, FAQ, then links to the other tools.
  */
 export async function CalculatorPage({ id, children, guide }: CalculatorPageProps) {
   const [t, tUi] = await Promise.all([getTranslations("calc"), getTranslations("calcUi")]);
@@ -64,6 +72,8 @@ export async function CalculatorPage({ id, children, guide }: CalculatorPageProp
       </p>
 
       {guide}
+
+      <CalculatorFaq id={id} />
 
       <section aria-labelledby="other-tools-title" className="mt-16 space-y-6">
         <h2 id="other-tools-title" className="text-xl font-semibold tracking-tight">

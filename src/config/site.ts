@@ -7,6 +7,20 @@ export const siteConfig = {
   /** WhatsApp number for the support button, digits only (e.g. 94XXXXXXXXX). */
   supportWhatsApp: process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "",
   themeColor: "#0F766E",
+  /** Google Search Console "HTML tag" verification code (Part F4.5). Optional. */
+  googleSiteVerification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? "",
+} as const;
+
+/**
+ * The share-preview picture made by `app/[locale]/opengraph-image.tsx`.
+ * Pages that set their own Open Graph data must list it again (see lib/seo.ts).
+ */
+export const openGraphImage = {
+  /** Path without the language; served as /en/opengraph-image, /si/... */
+  path: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  alt: "Profit Calculator — know your real profit in 10 seconds. Free.",
 } as const;
 
 /** Full link to a page in one language, e.g. for WhatsApp share text. */
