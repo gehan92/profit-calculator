@@ -1,12 +1,13 @@
 import { getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/button";
+import { Suspense } from "react";
 import { publicRoutes } from "@/config/site";
 import { Link } from "@/i18n/navigation";
+import { HeaderAccount, HeaderAccountSkeleton } from "./header-account";
 import { LanguageSwitcher } from "./language-switcher";
 import { Logo } from "./logo";
 
 /**
- * Guest top bar (Part C1): Logo · Calculators · Language · Login,
+ * Top bar (Part C1): Logo · Calculators · Language · Log in / My shop,
  * plus the "My Business (try)" link. Logged-in roles get their own
  * navigation from the dashboard layout (Day 8).
  */
@@ -25,9 +26,9 @@ export async function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-2">
           <LanguageSwitcher />
-          <Button asChild className="h-10 px-4">
-            <Link href={publicRoutes.login}>{t("login")}</Link>
-          </Button>
+          <Suspense fallback={<HeaderAccountSkeleton />}>
+            <HeaderAccount />
+          </Suspense>
         </div>
       </div>
     </header>

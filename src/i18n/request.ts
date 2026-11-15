@@ -19,6 +19,19 @@ export default getRequestConfig(async ({ locale: explicitLocale }) => {
 });
 
 async function resolveLocale(explicitLocale: string | undefined): Promise<AppLocale> {
-  const candidate = explicitLocale ?? (await rootLocale());
+  const candidate = explicitLocale ?? (await readRootLocale());
   return isAppLocale(candidate) ? candidate : DEFAULT_LOCALE;
+}
+
+/**
+ * Server Actions cannot read root params and would crash here. Actions must
+ * receive the language from their form instead (see src/actions); this
+ * fallback only keeps a forgotten case from breaking the page.
+ */
+async function readRootLocale(): Promise<string | undefined> {
+  try {
+    return await rootLocale();
+  } catch {
+    return undefined;
+  }
 }

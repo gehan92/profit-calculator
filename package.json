@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "check": "npm run lint && npm run typecheck && npm run test",
     "db:push": "supabase db push --remote",
-    "db:types": "supabase gen types typescript --linked > src/lib/supabase/types.ts"
+    "db:types": "supabase gen types typescript --remote > src/lib/supabase/types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.6",

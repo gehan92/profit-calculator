@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { openGraphImage } from "@/config/site";
+import { routing } from "@/i18n/routing";
 
 /**
  * The picture shown when a link is shared on WhatsApp or Facebook (Part F4.5).
@@ -9,6 +10,11 @@ import { openGraphImage } from "@/config/site";
  * and Tamil letters correctly, so those words would look broken. The page
  * title and description under the picture are still in the page's language.
  */
+/** Build the image once per language at build time instead of on every request. */
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
 export const alt = openGraphImage.alt;
 export const size = { width: openGraphImage.width, height: openGraphImage.height };
 export const contentType = "image/png";
