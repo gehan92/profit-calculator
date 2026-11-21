@@ -1,21 +1,31 @@
-import { ArrowRightIcon, CalculatorIcon, LogOutIcon } from "lucide-react";
+import { ArrowRightIcon, CalculatorIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { signOut } from "@/actions/auth";
+import { AddButtons } from "@/components/dashboard/add-buttons";
 import { GuestImportPrompt } from "@/components/dashboard/guest-import-prompt";
+import { NoAccessToast } from "@/components/dashboard/no-access-toast";
+import { OwnerHome } from "@/components/dashboard/owner-home";
 import { ShopNameForm } from "@/components/dashboard/shop-name-form";
 import { SignupTracker } from "@/components/dashboard/signup-tracker";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { getCurrentUser } from "@/lib/auth/current-user";
-import { dashboardPath, loginPath } from "@/lib/auth/routes";
-import { BusinessRepository } from "@/lib/business/business-repository";
+import { NO_ACCESS_PARAM, requireDashboardPage } from "@/lib/auth/dashboard-access";
+import { addDays, utcIsoDate } from "@/lib/dates";
+import { EntryRepository } from "@/lib/entries/entry-repository";
+import { can, dashboardRoutes } from "@/lib/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+/**
+ * How far back the home screen loads entries: the whole of this month plus
+ * yesterday, on any phone calendar (a month is at most 31 days, and the
+ * phone may be a day ahead of the server).
+ */
+const HOME_HISTORY_DAYS = 32;
 
 export async function generateMetadata({
   params,
@@ -28,100 +38,92 @@ export async function generateMetadata({
 }
 
 /**
- * /[locale]/dashboard — Day 6 version: proves login works and the first shop
- * exists ("Done when: Can log in; profile + shop created", Part G1).
- * Day 8 turns this into the Owner home with today's profit.
+ * /[locale]/dashboard — Owner home (Part C2, Part D2 "Home (today)").
+ * Staff see only the add buttons here for now: they never see totals, and
+ * their full "Today" screen comes with the team features (Phase 4).
  */
 export default function DashboardPage({ params, searchParams }: PageProps<"/[locale]/dashboard">) {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
       {/* Reads the login cookie, so it streams in behind a boundary (Cache Components). */}
-      <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardContent params={params} searchParams={searchParams} />
+      <Suspense fallback={<HomeSkeleton />}>
+        <HomeContent params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function DashboardContent({ params, searchParams }: PageProps<"/[locale]/dashboard">) {
+async function HomeContent({ params, searchParams }: PageProps<"/[locale]/dashboard">) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
 
-  // Second guard after the proxy (Part F5: "never trust the UI alone").
-  const user = await getCurrentUser();
-  if (!user) redirect(loginPath(locale, dashboardPath(locale)));
+  const { membership } = await requireDashboardPage(locale, dashboardRoutes.home);
+  const { role, business } = membership;
+  const query = await searchParams;
 
-  const t = await getTranslations({ locale, namespace: "dashboard" });
-  const supabase = await createSupabaseServerClient();
-  // Normally created in /auth/callback; this repairs it if that step failed.
-  const { membership } = await new BusinessRepository(supabase).ensureFirstBusiness(
-    user.id,
-    locale,
-    t("defaultShopName"),
-  );
+  const signupMethod = query.welcome === "google" || query.welcome === "email" ? query.welcome : null;
+  const askShopName = signupMethod !== null && role === "owner";
 
-  const { welcome } = await searchParams;
-  const signupMethod = welcome === "google" || welcome === "email" ? welcome : null;
-  const askShopName = signupMethod !== null && membership.role === "owner";
+  let ownerHome = null;
+  if (can(role, "seeTotals")) {
+    const supabase = await createSupabaseServerClient();
+    const entries = await new EntryRepository(supabase).listSince(
+      business.id,
+      addDays(utcIsoDate(), -HOME_HISTORY_DAYS),
+    );
+    ownerHome = <OwnerHome shopName={business.name} entries={entries} />;
+  }
 
   return (
     <div className="space-y-6">
       {signupMethod && <SignupTracker method={signupMethod} />}
+      {query[NO_ACCESS_PARAM] && <NoAccessToast />}
 
-      <section className="rounded-2xl bg-primary p-6 text-primary-foreground sm:p-8">
-        <p className="text-sm font-semibold tracking-wide text-primary-foreground/80 uppercase">
-          {t("eyebrow")}
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-          {t("welcomeTitle", { shop: membership.business.name })}
-        </h1>
-        <p className="mt-3 max-w-xl text-pretty text-primary-foreground/85">{t("welcomeBody")}</p>
-      </section>
-
-      {askShopName && <ShopNameForm businessId={membership.business.id} />}
+      {askShopName && <ShopNameForm businessId={business.id} />}
 
       {/* Records made in guest mode on this phone (Part D2 "Move guest data", Owner). */}
-      {membership.role === "owner" && <GuestImportPrompt />}
+      {can(role, "importGuestEntries") && <GuestImportPrompt />}
 
-      <section className="flex flex-col gap-4 rounded-2xl border bg-background p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-            <CalculatorIcon aria-hidden="true" className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold">{t("calculatorsTitle")}</h2>
-            <p className="text-sm text-muted-foreground">{t("calculatorsBody")}</p>
-          </div>
-        </div>
-        <Button asChild variant="outline" className="w-full sm:w-auto">
-          <Link href="/#calculators">
-            {t("openCalculators")}
-            <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
-          </Link>
-        </Button>
-      </section>
+      {ownerHome ?? <AddButtons />}
 
-      <footer className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm break-all text-muted-foreground">
-          {user.email && t("loggedInAs", { email: user.email })}
-        </p>
-        <form action={signOut}>
-          <input type="hidden" name="locale" value={locale} />
-          <Button type="submit" variant="ghost" className="w-full text-muted-foreground sm:w-auto">
-            <LogOutIcon data-icon="inline-start" aria-hidden="true" />
-            {t("logout")}
-          </Button>
-        </form>
-      </footer>
+      <CalculatorsCard />
     </div>
   );
 }
 
-function DashboardSkeleton() {
+async function CalculatorsCard() {
+  const t = await getTranslations("dashboard");
+
+  return (
+    <section className="flex flex-col gap-4 rounded-2xl border bg-background p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          <CalculatorIcon aria-hidden="true" className="size-5" />
+        </span>
+        <div>
+          <h2 className="text-lg font-semibold">{t("calculatorsTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("calculatorsBody")}</p>
+        </div>
+      </div>
+      <Button asChild variant="outline" className="w-full sm:w-auto">
+        <Link href="/#calculators">
+          {t("openCalculators")}
+          <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
+        </Link>
+      </Button>
+    </section>
+  );
+}
+
+function HomeSkeleton() {
   return (
     <div className="space-y-6" aria-hidden="true">
-      <Skeleton className="h-44 w-full rounded-2xl" />
-      <Skeleton className="h-28 w-full rounded-2xl" />
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
+      <div className="grid grid-cols-2 gap-3">
+        <Skeleton className="h-14 rounded-lg" />
+        <Skeleton className="h-14 rounded-lg" />
+      </div>
     </div>
   );
 }

@@ -1,11 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppLocale } from "@/i18n/config";
+import type { MemberRole } from "@/lib/roles";
 import type { Database, Tables } from "@/lib/supabase/types";
 
 /** The shop fields pages need. */
 export type Business = Pick<Tables<"businesses">, "id" | "name" | "currency" | "locale" | "plan">;
-
-export type MemberRole = Database["public"]["Enums"]["member_role"];
 
 export interface Membership {
   business: Business;

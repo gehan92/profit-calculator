@@ -17,7 +17,8 @@ interface EntryListProps<Entry extends ListEntry> {
   today: IsoDate;
   /** A stable key for an entry (its `clientId` here, its database id later). */
   entryKey: (entry: Entry) => string;
-  onDelete: (entry: Entry) => void;
+  /** Shows a delete button on each entry. Leave out for a read-only list. */
+  onDelete?: (entry: Entry) => void;
 }
 
 /**
@@ -73,7 +74,10 @@ export function EntryList<Entry extends ListEntry>({
                 const isIncome = entry.type === "income";
                 const amount = money(entry.amountCents);
                 return (
-                  <li key={entryKey(entry)} className="flex items-center gap-3 py-2 pr-2 pl-4">
+                  <li
+                    key={entryKey(entry)}
+                    className={cn("flex min-h-14 items-center gap-3 py-2 pl-4", onDelete ? "pr-2" : "pr-4")}
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{tCategory(entry.category)}</p>
                       {entry.note && (
@@ -89,19 +93,21 @@ export function EntryList<Entry extends ListEntry>({
                       {isIncome ? "+" : "−"}
                       {amount}
                     </p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-11 shrink-0 text-muted-foreground hover:text-loss"
-                      aria-label={tEntry("deleteLabel", {
-                        category: tCategory(entry.category),
-                        amount,
-                      })}
-                      onClick={() => onDelete(entry)}
-                    >
-                      <Trash2Icon aria-hidden="true" />
-                    </Button>
+                    {onDelete && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-11 shrink-0 text-muted-foreground hover:text-loss"
+                        aria-label={tEntry("deleteLabel", {
+                          category: tCategory(entry.category),
+                          amount,
+                        })}
+                        onClick={() => onDelete(entry)}
+                      >
+                        <Trash2Icon aria-hidden="true" />
+                      </Button>
+                    )}
                   </li>
                 );
               })}

@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { track } from "@/lib/analytics";
 import { authRoutes } from "@/lib/auth/routes";
-import { monthOf } from "@/lib/dates";
+import { addDays, monthOf } from "@/lib/dates";
 import type { ClientEntry, EntryFields } from "@/lib/entries/entry";
 import { EntryBook } from "@/lib/entries/entry-book";
 import { guestEntryStore, GuestStoreFullError, MAX_GUEST_ENTRIES } from "@/lib/guest-store";
@@ -73,7 +73,11 @@ export function GuestBusiness() {
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <div className="space-y-6">
-          <TodaySummary today={book.forDay(today)} month={book.forMonth(monthOf(today))} />
+          <TodaySummary
+            today={book.forDay(today)}
+            yesterday={book.forDay(addDays(today, -1))}
+            month={book.forMonth(monthOf(today))}
+          />
 
           <section
             aria-labelledby="add-entry-title"

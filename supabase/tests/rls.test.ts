@@ -411,6 +411,72 @@ describe("Guest import: no duplicates on retry (Part D2)", () => {
   });
 });
 
+describe("Add entry (addEntry): one save = one stored entry (Day 8)", () => {
+  // The SQL that EntryRepository.add sends: a plain insert that never asks for
+  // the row back. (An upsert, `on conflict`, would make Postgres check the read
+  // rule too, and Staff may not read past days: see the first test below.)
+  const addYesterday = (userId: string, clientId: string, onConflict = "") =>
+    db.as(userId, (s) =>
+      s.query(
+        `insert into entries (business_id, type, category, amount_cents, entry_date, client_id)
+         values ($1, 'income', 'sales', 120000, current_date - 1, $2) ${onConflict}`,
+        [ids.shopA, clientId],
+      ),
+    );
+  const stored = async (clientId: string) =>
+    (
+      await db.asService<{ n: number; created_by: string }>(
+        "select count(*)::int as n, min(created_by::text) as created_by from entries where client_id = $1",
+        [clientId],
+      )
+    ).rows[0];
+
+  it("a Staff member can add an entry for an earlier day, and a double tap stores it once", async () => {
+    const clientId = "7f1c1d3e-4444-4c4c-9a9a-000000000001";
+    await addYesterday(ids.staff, clientId);
+    // The second tap is refused with SQLSTATE 23505; EntryRepository.add treats it as "already saved".
+    await expect(addYesterday(ids.staff, clientId)).rejects.toMatchObject({ code: "23505" });
+
+    const row = await stored(clientId);
+    expect(row.n).toBe(1);
+    expect(row.created_by).toBe(ids.staff);
+  });
+
+  it("an upsert (on conflict) would be refused for that same Staff entry: why add() is a plain insert", async () => {
+    await expect(
+      addYesterday(
+        ids.staff,
+        "7f1c1d3e-4444-4c4c-9a9a-000000000004",
+        "on conflict (business_id, client_id) do nothing",
+      ),
+    ).rejects.toThrow(RLS_ERROR);
+  });
+
+  it("the Owner can add an entry the same way", async () => {
+    const clientId = "7f1c1d3e-4444-4c4c-9a9a-000000000002";
+    await addYesterday(ids.ownerA, clientId);
+    expect((await stored(clientId)).created_by).toBe(ids.ownerA);
+  });
+
+  it("a Viewer cannot add entries", async () => {
+    await expect(addYesterday(ids.viewer, "7f1c1d3e-4444-4c4c-9a9a-000000000003")).rejects.toThrow(
+      RLS_ERROR,
+    );
+  });
+
+  it("an entry cannot be saved in someone else's name", async () => {
+    await expect(
+      db.as(ids.staff, (s) =>
+        s.query(
+          `insert into entries (business_id, type, category, amount_cents, entry_date, created_by)
+           values ($1, 'income', 'sales', 5000, current_date, $2)`,
+          [ids.shopA, ids.ownerA],
+        ),
+      ),
+    ).rejects.toThrow(RLS_ERROR);
+  });
+});
+
 describe("Feedback: anyone can send, only the team can read", () => {
   it("a guest can send feedback but cannot read any", async () => {
     const seen = await db.as(null, async (s) => {

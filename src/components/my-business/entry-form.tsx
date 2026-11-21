@@ -2,7 +2,7 @@
 
 import { CheckIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { MoneyInput } from "@/components/calculators/number-field";
 import { SegmentedControl } from "@/components/calculators/segmented-control";
@@ -39,6 +39,10 @@ interface EntryFormProps {
    * tells the person why. The form then keeps what they typed.
    */
   onSave: (fields: EntryFields) => boolean | Promise<boolean>;
+  /** Which type is chosen first, e.g. from the "− Expense" button. Default: income. */
+  initialType?: EntryType;
+  /** Put the cursor in the amount at once (opens the number keypad on phones). */
+  autoFocusAmount?: boolean;
 }
 
 const AMOUNT_ID = "entry-amount";
@@ -49,17 +53,26 @@ const AMOUNT_ID = "entry-amount";
  * After saving it shows "Saved" and stays ready for the next entry, keeping
  * the type, category and date.
  */
-export function EntryForm({ today, onSave }: EntryFormProps) {
+export function EntryForm({
+  today,
+  onSave,
+  initialType = "income",
+  autoFocusAmount = false,
+}: EntryFormProps) {
   const t = useTranslations("entry");
   const tCategory = useTranslations("categories");
 
-  const [type, setType] = useState<EntryType>("income");
-  const [category, setCategory] = useState<Category>(DEFAULT_CATEGORY.income);
+  const [type, setType] = useState<EntryType>(initialType);
+  const [category, setCategory] = useState<Category>(DEFAULT_CATEGORY[initialType]);
   const [amount, setAmount] = useState("");
   const [dateChoice, setDateChoice] = useState<DateChoice>("today");
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (autoFocusAmount) focusAmount();
+  }, [autoFocusAmount]);
 
   const yesterday = addDays(today, -1);
   const entryDate =
@@ -140,6 +153,8 @@ export function EntryForm({ today, onSave }: EntryFormProps) {
         }}
         invalid={Boolean(errors.amount)}
         hint={errors.amount}
+        // The keypad's "Done" saves: the quickest way to add a record.
+        enterKeyHint="done"
       />
 
       <ChipGroup

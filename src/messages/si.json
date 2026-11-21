@@ -41,9 +41,6 @@
   "dashboard": {
     "metaTitle": "මගේ කඩය",
     "defaultShopName": "මගේ කඩය",
-    "eyebrow": "ඔබේ ගිණුම සූදානම්",
-    "welcomeTitle": "{shop} වෙත සාදරයෙන් පිළිගනිමු",
-    "welcomeBody": "ඉක්මනින්ම ඔබට මෙහි දෛනික විකුණුම් සහ වියදම් එකතු කර මාසයේ ලාභය බැලිය හැක.",
     "shopNameTitle": "ඔබේ කඩයේ නම කුමක්ද?",
     "shopNameHint": "ඔබට එය පසුව වෙනස් කළ හැක.",
     "shopNameLabel": "කඩයේ නම",
@@ -55,9 +52,39 @@
     "saveFailed": "සුරැකීමට නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.",
     "calculatorsTitle": "නොමිලේ ගණක",
     "calculatorsBody": "ඕනෑම වේලාවක ලාභය, ආන්තිකය, මිල සහ සමතුලිත ලක්ෂ්‍යය ගණනය කරන්න.",
-    "openCalculators": "ගණක විවෘත කරන්න",
-    "loggedInAs": "{email} ලෙස ඇතුල් වී ඇත",
+    "openCalculators": "ගණක විවෘත කරන්න"
+  },
+  "appNav": {
+    "label": "කඩයේ මෙනුව",
+    "home": "මුල් පිටුව",
+    "add": "එකතු කරන්න",
+    "summary": "සාරාංශය",
+    "settings": "සැකසුම්",
+    "today": "අද",
+    "myEntries": "මගේ වාර්තා",
+    "entries": "වාර්තා",
+    "soon": "ඉක්මනින්",
+    "noAccess": "ඔබට එම පිටුවට ප්‍රවේශය නැත."
+  },
+  "account": {
+    "menu": "ගිණුම් මෙනුව",
+    "loggedInAs": "ඇතුල් වී ඇත්තේ",
+    "calculators": "නොමිලේ ගණක",
     "logout": "ඉවත් වන්න"
+  },
+  "roleBadge": {
+    "staff": "කාර්ය මණ්ඩලය",
+    "viewer": "බැලීමට පමණි"
+  },
+  "ownerHome": {
+    "todayTitle": "අද වාර්තා",
+    "nothingToday": "අද තවම වාර්තා නැත",
+    "emptyBody": "අද විකුණුම් එකතු කිරීමට ආදායම ඔබන්න. ඔබේ ලාභය මෙහි පෙන්වයි."
+  },
+  "addEntry": {
+    "backHome": "මුල් පිටුවට",
+    "saveFailed": "සුරැකීමට නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+    "notAllowed": "ඔබට මෙම කඩයට වාර්තා එකතු කළ නොහැක."
   },
   "entry": {
     "typeLegend": "වර්ගය",
@@ -97,7 +124,8 @@
     "dayYesterday": "ඊයේ",
     "dayProfit": "ලාභය {amount}",
     "dayLoss": "අලාභය {amount}",
-    "entryCount": "{count, plural, one {වාර්තා #} other {වාර්තා #}}"
+    "entryCount": "{count, plural, one {වාර්තා #} other {වාර්තා #}}",
+    "vsYesterday": "ඊයේට සාපේක්ෂව {change}"
   },
   "try": {
     "metaTitle": "මගේ ව්‍යාපාරය — නොමිලේ අත්හදා බලන්න",

@@ -22,6 +22,11 @@ export interface NumberFieldProps extends AmountInputOptions {
   invalid?: boolean;
   /** Extra control next to the label, e.g. a remove button. */
   labelAction?: ReactNode;
+  /**
+   * The keypad's action key. "next" (default) moves to the next field, as on
+   * the calculators; "done" sends the form (Add entry: type the amount, done).
+   */
+  enterKeyHint?: "next" | "done";
 }
 
 /**
@@ -43,6 +48,7 @@ export function NumberField({
   maxDecimals = 2,
   groupThousands = true,
   maxWholeDigits,
+  enterKeyHint = "next",
 }: NumberFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingCaret = useRef<number | null>(null);
@@ -90,7 +96,7 @@ export function NumberField({
           type="text"
           inputMode={maxDecimals > 0 ? "decimal" : "numeric"}
           autoComplete="off"
-          enterKeyHint="next"
+          enterKeyHint={enterKeyHint}
           value={value}
           onChange={handleChange}
           placeholder={placeholder}

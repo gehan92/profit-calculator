@@ -4,7 +4,7 @@ import {
   INCOME_CATEGORIES,
   type Category,
 } from "@/config/categories";
-import { isIsoDate } from "@/lib/dates";
+import { addDays, isIsoDate, utcIsoDate, type IsoDate } from "@/lib/dates";
 
 /**
  * One income or expense (Part D2 "Add entry", Part F3 `entries`), with the
@@ -43,6 +43,15 @@ export const DEFAULT_CATEGORY = {
 } as const satisfies Record<EntryType, Category>;
 
 const ALL_CATEGORIES = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES] as const;
+
+/**
+ * The latest entry date the server accepts ("no future dates", Part F5).
+ * The server doesn't know the phone's timezone, so it allows one day ahead
+ * of UTC (Sri Lanka is UTC+5:30; the furthest timezone is UTC+14).
+ */
+export function latestEntryDate(now: Date = new Date()): IsoDate {
+  return addDays(utcIsoDate(now), 1);
+}
 
 export function isCategoryOf(type: EntryType, category: string): boolean {
   return (CATEGORIES_BY_TYPE[type] as readonly string[]).includes(category);

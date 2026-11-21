@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 interface TodaySummaryProps {
   today: Totals;
   month: Totals;
+  /** Shows "+Rs 2,000 vs yesterday" when yesterday has records. */
+  yesterday?: Totals;
 }
 
 /**
@@ -15,11 +17,12 @@ interface TodaySummaryProps {
  * wireframe). Green with the word Profit, or red with the word Loss, as on
  * the calculators: colour alone is never the only sign.
  */
-export function TodaySummary({ today, month }: TodaySummaryProps) {
+export function TodaySummary({ today, month, yesterday }: TodaySummaryProps) {
   const t = useTranslations("myBusiness");
   const { money } = useCalcFormat();
   const isLoss = today.profitCents < 0;
   const monthIsLoss = month.profitCents < 0;
+  const change = yesterday && yesterday.count > 0 ? today.profitCents - yesterday.profitCents : null;
 
   return (
     <section
@@ -44,6 +47,16 @@ export function TodaySummary({ today, month }: TodaySummaryProps) {
         >
           {money(Math.abs(today.profitCents))}
         </p>
+        {change !== null && (
+          <p
+            className={cn(
+              "money mt-2 text-sm font-semibold",
+              change < 0 ? "text-loss" : "text-profit-foreground",
+            )}
+          >
+            {t("vsYesterday", { change: `${change < 0 ? "−" : "+"}${money(Math.abs(change))}` })}
+          </p>
+        )}
       </div>
 
       <dl className="grid grid-cols-2 divide-x rounded-xl border">
