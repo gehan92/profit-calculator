@@ -31,6 +31,12 @@ interface FormErrors {
   date?: string;
 }
 
+/**
+ * What `onSave` answers: `true` (saved), `false` (not saved), or `"queued"`
+ * (kept on this phone to be sent later: the caller has already said so).
+ */
+export type SaveResult = boolean | "queued";
+
 interface EntryFormProps {
   /** Today on this phone, e.g. "2026-11-15". */
   today: IsoDate;
@@ -38,35 +44,60 @@ interface EntryFormProps {
    * Saves the entry. Returns `false` when it could not be saved; the caller
    * tells the person why. The form then keeps what they typed.
    */
-  onSave: (fields: EntryFields) => boolean | Promise<boolean>;
+  onSave: (fields: EntryFields) => SaveResult | Promise<SaveResult>;
   /** Which type is chosen first, e.g. from the "− Expense" button. Default: income. */
   initialType?: EntryType;
   /** Put the cursor in the amount at once (opens the number keypad on phones). */
   autoFocusAmount?: boolean;
+  /**
+   * Changing a saved entry instead of adding a new one: the form starts with
+   * `initial`, says "Save changes", and does not clear itself after saving
+   * (the caller closes the edit sheet).
+   */
+  mode?: "add" | "edit";
+  /** The entry being changed (`mode="edit"`). */
+  initial?: EntryFields;
+  /** Hide the date: it cannot be changed (Staff may only edit their entries from today). */
+  lockDate?: boolean;
 }
 
 const AMOUNT_ID = "entry-amount";
+
+function dateChoiceFor(date: IsoDate, today: IsoDate): DateChoice {
+  if (date === today) return "today";
+  return date === addDays(today, -1) ? "yesterday" : date;
+}
 
 /**
  * Add entry (Part D2, Part C2 wireframe): Income | Expense, amount, category
  * chip, date (today by default, no future dates) and an optional note.
  * After saving it shows "Saved" and stays ready for the next entry, keeping
- * the type, category and date.
+ * the type, category and date. The same form edits an existing entry
+ * (`mode="edit"`).
  */
 export function EntryForm({
   today,
   onSave,
   initialType = "income",
   autoFocusAmount = false,
+  mode = "add",
+  initial,
+  lockDate = false,
 }: EntryFormProps) {
   const t = useTranslations("entry");
   const tCategory = useTranslations("categories");
 
-  const [type, setType] = useState<EntryType>(initialType);
-  const [category, setCategory] = useState<Category>(DEFAULT_CATEGORY[initialType]);
-  const [amount, setAmount] = useState("");
-  const [dateChoice, setDateChoice] = useState<DateChoice>("today");
-  const [note, setNote] = useState("");
+  const [type, setType] = useState<EntryType>(initial?.type ?? initialType);
+  const [category, setCategory] = useState<Category>(
+    initial?.category ?? DEFAULT_CATEGORY[initialType],
+  );
+  const [amount, setAmount] = useState(
+    initial ? Money.fromCents(initial.amountCents).toInputString() : "",
+  );
+  const [dateChoice, setDateChoice] = useState<DateChoice>(
+    initial ? dateChoiceFor(initial.entryDate, today) : "today",
+  );
+  const [note, setNote] = useState(initial?.note ?? "");
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
 
@@ -76,7 +107,13 @@ export function EntryForm({
 
   const yesterday = addDays(today, -1);
   const entryDate =
-    dateChoice === "today" ? today : dateChoice === "yesterday" ? yesterday : dateChoice;
+    lockDate && initial
+      ? initial.entryDate
+      : dateChoice === "today"
+        ? today
+        : dateChoice === "yesterday"
+          ? yesterday
+          : dateChoice;
 
   function chooseType(next: EntryType) {
     setType(next);
@@ -94,8 +131,11 @@ export function EntryForm({
   function validate(): FormErrors {
     const found: FormErrors = {};
     if (!Money.parse(amount)?.isPositive) found.amount = t("amountRequired");
-    if (!isIsoDate(entryDate) || entryDate < EARLIEST_ENTRY_DATE) found.date = t("dateInvalid");
-    else if (entryDate > today) found.date = t("futureDate");
+    // A locked date is the entry's own, saved date: nothing to check.
+    if (!lockDate) {
+      if (!isIsoDate(entryDate) || entryDate < EARLIEST_ENTRY_DATE) found.date = t("dateInvalid");
+      else if (entryDate > today) found.date = t("futureDate");
+    }
     return found;
   }
 
@@ -122,9 +162,9 @@ export function EntryForm({
     setSaving(true);
     const saved = await onSave(parsed.data);
     setSaving(false);
-    if (!saved) return;
+    if (!saved || mode === "edit") return;
 
-    toast.success(t("saved"));
+    if (saved !== "queued") toast.success(t("saved"));
     setAmount("");
     setNote("");
     focusAmount();
@@ -165,35 +205,37 @@ export function EntryForm({
         onValueChange={setCategory}
       />
 
-      <ChipGroup
-        name="entry-date"
-        legend={t("date")}
-        options={[
-          { value: "today", label: t("today") },
-          { value: "yesterday", label: t("yesterday") },
-        ]}
-        value={dateChoice === "today" || dateChoice === "yesterday" ? dateChoice : null}
-        onValueChange={setDateChoice}
-        error={errors.date}
-      >
-        <label
-          className={cn(
-            CHIP_CLASS,
-            "gap-2 pr-2 focus-within:ring-3 focus-within:ring-ring/50",
-            dateChoice !== "today" && dateChoice !== "yesterday" && "border-primary",
-          )}
+      {!lockDate && (
+        <ChipGroup
+          name="entry-date"
+          legend={t("date")}
+          options={[
+            { value: "today", label: t("today") },
+            { value: "yesterday", label: t("yesterday") },
+          ]}
+          value={dateChoice === "today" || dateChoice === "yesterday" ? dateChoice : null}
+          onValueChange={setDateChoice}
+          error={errors.date}
         >
-          <span className="text-muted-foreground">{t("pickDate")}</span>
-          <input
-            type="date"
-            value={entryDate}
-            min={EARLIEST_ENTRY_DATE}
-            max={today}
-            onChange={(event) => chooseDate(event.target.value)}
-            className="money min-h-9 rounded-full bg-transparent px-1 text-sm font-semibold outline-none"
-          />
-        </label>
-      </ChipGroup>
+          <label
+            className={cn(
+              CHIP_CLASS,
+              "gap-2 pr-2 focus-within:ring-3 focus-within:ring-ring/50",
+              dateChoice !== "today" && dateChoice !== "yesterday" && "border-primary",
+            )}
+          >
+            <span className="text-muted-foreground">{t("pickDate")}</span>
+            <input
+              type="date"
+              value={entryDate}
+              min={EARLIEST_ENTRY_DATE}
+              max={today}
+              onChange={(event) => chooseDate(event.target.value)}
+              className="money min-h-9 rounded-full bg-transparent px-1 text-sm font-semibold outline-none"
+            />
+          </label>
+        </ChipGroup>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="entry-note" className="text-base font-medium">
@@ -221,7 +263,7 @@ export function EntryForm({
         className="h-auto min-h-14 w-full py-3 text-base leading-tight whitespace-normal"
       >
         <CheckIcon data-icon="inline-start" aria-hidden="true" />
-        {type === "income" ? t("saveIncome") : t("saveExpense")}
+        {mode === "edit" ? t("saveChanges") : type === "income" ? t("saveIncome") : t("saveExpense")}
       </Button>
     </form>
   );

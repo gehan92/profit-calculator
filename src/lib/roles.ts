@@ -79,6 +79,10 @@ export function landing(role: MemberRole): DashboardRoute {
 const PERMISSIONS = {
   /** Add income / expense. */
   addEntry: ["owner", "staff"],
+  /** Change an entry (Staff: their own, from today; RLS enforces which). */
+  editEntry: ["owner", "staff"],
+  /** Delete an entry (Part B2: Owner only). */
+  deleteEntry: ["owner"],
   /** Today's profit, monthly summary, real profit. Staff never see totals (Part B3). */
   seeTotals: ["owner", "viewer"],
   /** "Move N records to your account?" after the first login. */

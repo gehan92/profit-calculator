@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { BrowserStore } from "./browser-store";
 import type { EntryFields } from "./entries/entry";
-import { GuestEntryStore, GuestStoreFullError, MAX_GUEST_ENTRIES } from "./guest-store";
+import { LocalEntryStore, LocalStoreFullError } from "./local-entry-store";
 
 // Vitest runs in Node: there is no localStorage, so BrowserStore keeps values in memory.
-const KEY = "test:guest";
+const KEY = "test:local";
+const MAX = 3;
 
 const sale: EntryFields = {
   type: "income",
@@ -16,14 +17,14 @@ const sale: EntryFields = {
 const stock: EntryFields = { ...sale, type: "expense", category: "stock", amountCents: 1_500_000 };
 
 let browser: BrowserStore;
-let store: GuestEntryStore;
+let store: LocalEntryStore;
 
 beforeEach(() => {
   browser = new BrowserStore();
-  store = new GuestEntryStore(browser, KEY);
+  store = new LocalEntryStore(browser, { key: KEY, maxEntries: MAX });
 });
 
-describe("GuestEntryStore", () => {
+describe("LocalEntryStore", () => {
   it("starts empty", () => {
     expect(store.list()).toEqual([]);
   });
@@ -35,6 +36,11 @@ describe("GuestEntryStore", () => {
     expect(first.clientId).not.toBe(second.clientId);
     expect(first.clientId).toMatch(/^[0-9a-f-]{36}$/);
     expect(store.list().map((entry) => entry.category)).toEqual(["sales", "stock"]);
+  });
+
+  it("keeps a given clientId (a retried save keeps its id)", () => {
+    const id = "7f1c1d3e-1111-4c4c-9a9a-000000000001";
+    expect(store.add(sale, new Date(), id).clientId).toBe(id);
   });
 
   it("returns the same array until something changes (useSyncExternalStore)", () => {
@@ -69,16 +75,24 @@ describe("GuestEntryStore", () => {
     expect(store.list()).toHaveLength(2);
   });
 
-  it("removes only the moved entries, keeping ones added meanwhile", () => {
-    const moved = store.add(sale);
+  it("removes only the sent entries, keeping ones added meanwhile", () => {
+    const sent = store.add(sale);
     const addedLater = store.add(stock);
 
-    store.removeMany([moved.clientId]);
+    store.removeMany([sent.clientId]);
     expect(store.list()).toEqual([addedLater]);
 
     store.removeMany([addedLater.clientId]);
     expect(store.list()).toEqual([]);
     expect(browser.read(KEY)).toBeNull();
+  });
+
+  it("removeMany with nothing to remove changes nothing", () => {
+    store.add(sale);
+    let calls = 0;
+    store.subscribe(() => calls++);
+    store.removeMany([]);
+    expect(calls).toBe(0);
   });
 
   it("skips broken records but keeps good ones", () => {
@@ -97,13 +111,16 @@ describe("GuestEntryStore", () => {
     expect(store.list()).toEqual([]);
   });
 
-  it(`refuses more than ${MAX_GUEST_ENTRIES} entries`, () => {
-    const full = Array.from({ length: MAX_GUEST_ENTRIES }, (_, i) => ({
-      ...sale,
-      clientId: crypto.randomUUID(),
-      createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, i)).toISOString(),
-    }));
-    browser.write(KEY, JSON.stringify(full));
-    expect(() => store.add(sale)).toThrow(GuestStoreFullError);
+  it(`refuses more than its limit (${MAX}) entries`, () => {
+    store.add(sale);
+    store.add(sale);
+    store.add(sale);
+    expect(() => store.add(sale)).toThrow(LocalStoreFullError);
+  });
+
+  it("two stores with different keys never mix their entries", () => {
+    const other = new LocalEntryStore(browser, { key: "test:other", maxEntries: MAX });
+    store.add(sale);
+    expect(other.list()).toEqual([]);
   });
 });

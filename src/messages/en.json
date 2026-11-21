@@ -79,12 +79,41 @@
   "ownerHome": {
     "todayTitle": "Today's records",
     "nothingToday": "No records today yet",
-    "emptyBody": "Tap Income to add today's sales. Your profit shows here."
+    "emptyBody": "Tap Income to add today's sales. Your profit shows here.",
+    "allRecords": "All records"
   },
   "addEntry": {
     "backHome": "Back to home",
     "saveFailed": "Could not save. Please try again.",
     "notAllowed": "You can't add records to this shop."
+  },
+  "entries": {
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "filterType": "Type",
+    "all": "All",
+    "filterCategory": "Category",
+    "allCategories": "All categories",
+    "truncated": "This month has more records than can be shown. Showing the newest 1,000. Choose a type or category to narrow the list.",
+    "emptyMonth": "No records in this month",
+    "emptyFiltered": "No records match these filters",
+    "clearFilters": "Clear filters",
+    "addRecord": "Add a record",
+    "pending": "Waiting to send",
+    "locked": "Locked: only today's records can be changed",
+    "edit": "Change {category}, {amount}"
+  },
+  "offline": {
+    "offlineTitle": "You are offline",
+    "offlineBody": "Records you add are saved on this phone and sent when you are back online.",
+    "waiting": "{count, plural, one {# record waiting to send} other {# records waiting to send}}",
+    "sending": "Sending {count, plural, one {# record} other {# records}}…",
+    "retryLater": "Could not send yet. We will try again soon.",
+    "sendNow": "Send now",
+    "synced": "{count, plural, one {# record sent} other {# records sent}}",
+    "refused": "{count, plural, one {# record could not be saved and was removed} other {# records could not be saved and were removed}}",
+    "queued": "Saved on this phone. It will be sent when you are back online.",
+    "queueFull": "Too many records are waiting to be sent. Connect to the internet to send them."
   },
   "entry": {
     "typeLegend": "Type",
@@ -107,7 +136,20 @@
     "saved": "Saved",
     "deleteLabel": "Delete {category}, {amount}",
     "deleted": "Record deleted",
-    "undo": "Undo"
+    "undo": "Undo",
+    "editTitle": "Change record",
+    "saveChanges": "Save changes",
+    "changed": "Changes saved",
+    "delete": "Delete this record",
+    "deleteTitle": "Delete this record?",
+    "deleteBody": "{category}, {amount} on {date} will be deleted. You can undo it for {seconds} seconds.",
+    "deleteConfirm": "Yes, delete",
+    "cancel": "Cancel",
+    "deleteFailed": "Could not delete. The record is back. Please try again.",
+    "notFound": "This record was already changed or deleted.",
+    "notAllowedEdit": "You can't change this record.",
+    "saveFailedEdit": "Could not save the changes. Please try again.",
+    "offlineAction": "You are offline. Try again when you are back online."
   },
   "myBusiness": {
     "todayProfit": "Today's profit",

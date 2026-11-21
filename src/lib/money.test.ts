@@ -57,6 +57,24 @@ describe("Money arithmetic", () => {
   });
 });
 
+describe("Money.toInputString (edit form)", () => {
+  it.each([
+    [2_500_000, "25,000"],
+    [150_050, "1,500.50"],
+    [5, "0.05"],
+    [100, "1"],
+    [123_456_789, "1,234,567.89"],
+  ])("%i cents → %s", (cents, text) => {
+    expect(Money.fromCents(cents).toInputString()).toBe(text);
+  });
+
+  it("can be parsed back to the same cents", () => {
+    for (const cents of [1, 99, 100, 150_050, 2_500_000, 99_999_999_999_999]) {
+      expect(Money.parse(Money.fromCents(cents).toInputString())?.cents).toBe(cents);
+    }
+  });
+});
+
 describe("Money.symbol (input prefix)", () => {
   it.each([
     ["en", "Rs"],

@@ -2,13 +2,22 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Category } from "@/config/categories";
 import type { IsoDate } from "@/lib/dates";
 import type { Database, Tables, TablesInsert } from "@/lib/supabase/types";
-import type { ClientEntry, EntryFields } from "./entry";
+import type { ClientEntry, EntryFields, StoredEntry } from "./entry";
+import { monthRange, type EntryFilters } from "./entry-filters";
 
-/** Thrown when Supabase refuses or fails an entries query. */
+/** Thrown when Supabase refuses or fails an entries query. `code` is the Postgres error code, if any. */
 export class EntryQueryError extends Error {
-  constructor(action: string, cause: { message: string }) {
+  readonly code: string | undefined;
+
+  constructor(action: string, cause: { message: string; code?: string }) {
     super(`Could not ${action}: ${cause.message}`);
     this.name = "EntryQueryError";
+    this.code = cause.code;
+  }
+
+  /** True when the database refused because the person may not do this (Row Level Security). */
+  get isPermissionDenied(): boolean {
+    return this.code === INSUFFICIENT_PRIVILEGE;
   }
 }
 
@@ -19,25 +28,55 @@ export interface ImportOutcome {
   alreadySaved: number;
 }
 
-/** An entry as stored in the database, in the shape screens use. */
-export interface StoredEntry extends EntryFields {
-  id: string;
-  createdAt: string;
+/** What happened to each entry of an offline-queue batch, by `clientId`. */
+export interface SyncOutcome {
+  /** Stored now, or already stored by an earlier try: the phone may forget these. */
+  saved: string[];
+  /** The database will never accept these (e.g. not allowed): the phone should give up on them. */
+  refused: string[];
+  /** A temporary problem (e.g. the database was unreachable): keep these and try again later. */
+  failed: string[];
 }
 
-/** Postgres error code for "this value already exists" (SQLSTATE 23505). */
+/** SQLSTATE codes (Postgres error classes) used below. */
 const UNIQUE_VIOLATION = "23505";
+const INSUFFICIENT_PRIVILEGE = "42501";
 
-const LIST_COLUMNS = "id, type, category, amount_cents, entry_date, note, created_at" as const;
-type ListRow = Pick<Tables<"entries">, "id" | "type" | "category" | "amount_cents" | "entry_date" | "note" | "created_at">;
+/** How an insert error should be treated when sending queued entries. */
+export type InsertVerdict = "saved" | "refused" | "retry";
+
+/**
+ * Decides what to do with an entry whose insert failed:
+ * - duplicate `client_id` → it is already stored: done;
+ * - "not allowed", a broken rule or bad data (classes 42501, 23, 22) → it will
+ *   never be accepted: give up, so one bad entry cannot block the queue forever;
+ * - anything else (network, timeout, server trouble) → try again later.
+ */
+export function judgeInsertError(code: string | undefined): InsertVerdict {
+  if (code === UNIQUE_VIOLATION) return "saved";
+  if (code === INSUFFICIENT_PRIVILEGE || code?.startsWith("23") || code?.startsWith("22")) {
+    return "refused";
+  }
+  return "retry";
+}
+
+/** Entries one list page loads at most (Supabase also stops at 1,000 rows per request). */
+export const ENTRIES_PAGE_LIMIT = 1000;
+
+const LIST_COLUMNS =
+  "id, type, category, amount_cents, entry_date, note, created_at, client_id" as const;
+type ListRow = Pick<
+  Tables<"entries">,
+  "id" | "type" | "category" | "amount_cents" | "entry_date" | "note" | "created_at" | "client_id"
+>;
 
 /**
  * Reads and writes income and expense entries (Part F3 `entries`).
  *
  * Like BusinessRepository it uses the logged-in user's Supabase client, so
  * Row Level Security decides what is allowed (Owner: everything in their
- * shop; Staff: add, and read their own entries from today; nobody: other
- * shops). Day 9 adds update and delete.
+ * shop; Staff: add, and read/edit their own entries from today; Viewer: read;
+ * nobody: other shops).
  */
 export class EntryRepository {
   constructor(private readonly db: SupabaseClient<Database>) {}
@@ -50,10 +89,39 @@ export class EntryRepository {
       .eq("business_id", businessId)
       .gte("entry_date", from)
       .order("entry_date", { ascending: false })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(ENTRIES_PAGE_LIMIT);
 
     if (error) throw new EntryQueryError("load entries", error);
     return data.map(EntryRepository.fromRow);
+  }
+
+  /**
+   * One month of entries for the Entries list (Part D2), newest first, with
+   * the type and category filters applied in the database.
+   * `truncated` is true when the month has more than one page can hold.
+   */
+  async listMonth(
+    businessId: string,
+    filters: EntryFilters,
+  ): Promise<{ entries: StoredEntry[]; truncated: boolean }> {
+    const { from, before } = monthRange(filters.month);
+    let query = this.db
+      .from("entries")
+      .select(LIST_COLUMNS)
+      .eq("business_id", businessId)
+      .gte("entry_date", from)
+      .lt("entry_date", before);
+    if (filters.type) query = query.eq("type", filters.type);
+    if (filters.category) query = query.eq("category", filters.category);
+
+    const { data, error } = await query
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(ENTRIES_PAGE_LIMIT);
+
+    if (error) throw new EntryQueryError("load entries", error);
+    return { entries: data.map(EntryRepository.fromRow), truncated: data.length >= ENTRIES_PAGE_LIMIT };
   }
 
   /**
@@ -67,8 +135,15 @@ export class EntryRepository {
    * `.select()` and `ON CONFLICT` (upsert) make Postgres check the read rule
    * too, which would make a Staff member's save for "yesterday" fail
    * (see the note in 0001_init.sql and the test in supabase/tests/rls.test.ts).
+   *
+   * `createdAt` keeps the time an offline entry was really written.
    */
-  async add(businessId: string, fields: EntryFields, clientId: string): Promise<void> {
+  async add(
+    businessId: string,
+    fields: EntryFields,
+    clientId: string,
+    createdAt?: Date,
+  ): Promise<void> {
     const { error } = await this.db.from("entries").insert({
       business_id: businessId,
       type: fields.type,
@@ -77,17 +152,79 @@ export class EntryRepository {
       entry_date: fields.entryDate,
       note: fields.note,
       client_id: clientId,
+      ...(createdAt && { created_at: createdAt.toISOString() }),
     });
 
     if (error && error.code !== UNIQUE_VIOLATION) throw new EntryQueryError("add the entry", error);
   }
 
   /**
-   * Stores entries made in the browser (guest mode, later the offline queue).
+   * Sends the offline queue (Part F4.4). Every entry is inserted on its own,
+   * so one entry the database refuses never blocks the others, and a retry of
+   * the whole batch stores nothing twice (same `client_id`).
+   * Entries keep the time they were written, capped at `now` (a wrong phone clock).
+   */
+  async addQueued(
+    businessId: string,
+    entries: readonly ClientEntry[],
+    now: Date = new Date(),
+  ): Promise<SyncOutcome> {
+    const outcome: SyncOutcome = { saved: [], refused: [], failed: [] };
+
+    await Promise.all(
+      entries.map(async (entry) => {
+        const createdAt = new Date(Math.min(Date.parse(entry.createdAt), now.getTime()));
+        try {
+          await this.add(businessId, entry, entry.clientId, createdAt);
+          outcome.saved.push(entry.clientId);
+        } catch (error) {
+          const code = error instanceof EntryQueryError ? error.code : undefined;
+          const verdict = judgeInsertError(code);
+          outcome[verdict === "refused" ? "refused" : "failed"].push(entry.clientId);
+        }
+      }),
+    );
+    return outcome;
+  }
+
+  /**
+   * Changes an entry (Part D2 edit sheet). Returns `false` when there is
+   * nothing to change: it does not exist, or RLS hides it from this person.
+   * (Staff may change only their own entries from today, and may not move one
+   * to another day; the database refuses that with a permission error.)
+   */
+  async update(id: string, fields: EntryFields): Promise<boolean> {
+    const { data, error } = await this.db
+      .from("entries")
+      .update({
+        type: fields.type,
+        category: fields.category,
+        amount_cents: fields.amountCents,
+        entry_date: fields.entryDate,
+        note: fields.note,
+      })
+      .eq("id", id)
+      .select("id");
+
+    if (error) throw new EntryQueryError("change the entry", error);
+    return data.length > 0;
+  }
+
+  /** Deletes an entry. Returns `false` when there was nothing to delete or RLS hides it (only Owners may delete). */
+  async delete(id: string): Promise<boolean> {
+    const { data, error } = await this.db.from("entries").delete().eq("id", id).select("id");
+
+    if (error) throw new EntryQueryError("delete the entry", error);
+    return data.length > 0;
+  }
+
+  /**
+   * Stores entries made in the browser before login (guest mode).
    *
    * "Upsert on (business_id, client_id)" from Part F4.2: an entry whose
    * `clientId` is already in this shop is skipped, so retrying after a lost
-   * connection never creates duplicates.
+   * connection never creates duplicates. Owner only: it asks Postgres to read
+   * the rows, which Staff may not do for past days.
    */
   async importClientEntries(
     businessId: string,
@@ -117,6 +254,7 @@ export class EntryRepository {
       entryDate: row.entry_date,
       note: row.note,
       createdAt: row.created_at,
+      clientId: row.client_id,
     };
   }
 

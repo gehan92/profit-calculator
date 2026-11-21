@@ -12,7 +12,8 @@ import { authRoutes } from "@/lib/auth/routes";
 import { addDays, monthOf } from "@/lib/dates";
 import type { ClientEntry, EntryFields } from "@/lib/entries/entry";
 import { EntryBook } from "@/lib/entries/entry-book";
-import { guestEntryStore, GuestStoreFullError, MAX_GUEST_ENTRIES } from "@/lib/guest-store";
+import { guestEntryStore, MAX_GUEST_ENTRIES } from "@/lib/guest-store";
+import { LocalStoreFullError } from "@/lib/local-entry-store";
 import { EntryForm } from "./entry-form";
 import { EntryList } from "./entry-list";
 import { TodaySummary } from "./today-summary";
@@ -44,7 +45,7 @@ export function GuestBusiness() {
     try {
       guestEntryStore.add(fields);
     } catch (error) {
-      if (!(error instanceof GuestStoreFullError)) throw error;
+      if (!(error instanceof LocalStoreFullError)) throw error;
       toast.error(t("full", { max: MAX_GUEST_ENTRIES }));
       return false;
     }

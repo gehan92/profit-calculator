@@ -61,6 +61,11 @@ describe("can (Part B2 permission matrix)", () => {
     expect(can("viewer", "addEntry")).toBe(false);
   });
 
+  it("lets Owner and Staff edit entries, but only the Owner delete them (Part B2)", () => {
+    expect(MEMBER_ROLES.filter((role) => can(role, "editEntry"))).toEqual(["owner", "staff"]);
+    expect(MEMBER_ROLES.filter((role) => can(role, "deleteEntry"))).toEqual(["owner"]);
+  });
+
   it("never shows totals to Staff", () => {
     expect(can("owner", "seeTotals")).toBe(true);
     expect(can("viewer", "seeTotals")).toBe(true);

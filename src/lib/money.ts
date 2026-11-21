@@ -1,4 +1,5 @@
 import { INTL_LOCALE, type AppLocale } from "@/i18n/config";
+import { groupThousands } from "@/lib/amount-input";
 
 /** ISO 4217 currency code, stored per business (default LKR). */
 export type CurrencyCode = string;
@@ -116,6 +117,17 @@ export class Money {
   /** Amount in the main unit, e.g. 2_500_000 cents → 25000. For charts, not for maths. */
   toNumber(): number {
     return this.cents / 100;
+  }
+
+  /**
+   * The amount as a person types it into a money field, e.g. 2_500_000 → "25,000"
+   * and 150_050 → "1,500.50". For filling an edit form. Positive amounts only.
+   */
+  toInputString(): string {
+    const whole = Math.floor(Math.abs(this.cents) / 100);
+    const fraction = Math.abs(this.cents) % 100;
+    const grouped = groupThousands(String(whole));
+    return fraction === 0 ? grouped : `${grouped}.${String(fraction).padStart(2, "0")}`;
   }
 
   /** Display string in the user's language, e.g. "Rs 25,000.00", "රු. 25,000.00". */

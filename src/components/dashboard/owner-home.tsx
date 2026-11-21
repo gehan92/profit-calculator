@@ -1,16 +1,22 @@
 "use client";
 
-import { InboxIcon } from "lucide-react";
+import { ArrowRightIcon, InboxIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useMemo } from "react";
+import { useQueuedEntries } from "@/components/offline/use-queued-entries";
 import { EntryList } from "@/components/my-business/entry-list";
 import { TodaySummary } from "@/components/my-business/today-summary";
 import { useToday } from "@/components/my-business/use-today";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "@/i18n/navigation";
 import { addDays, isoDateToDate, monthOf } from "@/lib/dates";
+import { mergeQueuedEntries } from "@/lib/entries/display-entry";
+import type { StoredEntry } from "@/lib/entries/entry";
 import { EntryBook } from "@/lib/entries/entry-book";
-import type { StoredEntry } from "@/lib/entries/entry-repository";
+import { dashboardRoutes } from "@/lib/roles";
 import { AddButtons } from "./add-buttons";
+import { useEntryDelete } from "./entry-delete-provider";
 
 interface OwnerHomeProps {
   shopName: string;
@@ -24,14 +30,22 @@ interface OwnerHomeProps {
  * today's records. Empty state: "Add your first sale".
  *
  * "Today" is the phone's date, so the numbers are worked out in the browser
- * from the entries the server loaded.
+ * from the entries the server loaded, plus records still waiting on this
+ * phone to be sent (added offline).
  */
 export function OwnerHome({ shopName, entries }: OwnerHomeProps) {
   const t = useTranslations("ownerHome");
   const tBusiness = useTranslations("myBusiness");
   const format = useFormatter();
   const today = useToday();
-  const book = useMemo(() => new EntryBook(entries), [entries]);
+  const queued = useQueuedEntries();
+  // A record deleted on the Entries screen stays hidden here too while its Undo time runs.
+  const { hiddenIds } = useEntryDelete();
+  const rows = useMemo(
+    () => mergeQueuedEntries(entries, queued).filter((entry) => !(entry.id && hiddenIds.has(entry.id))),
+    [entries, queued, hiddenIds],
+  );
+  const book = useMemo(() => new EntryBook(rows), [rows]);
 
   if (today === null) return <OwnerHomeSkeleton />;
 
@@ -60,11 +74,22 @@ export function OwnerHome({ shopName, entries }: OwnerHomeProps) {
       <AddButtons />
 
       <section aria-labelledby="today-records-title" className="space-y-3">
-        <h2 id="today-records-title" className="text-lg font-semibold">
-          {t("todayTitle")}
-        </h2>
+        {/* Wraps in Sinhala and Tamil, where the link text is long. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3">
+          <h2 id="today-records-title" className="text-lg font-semibold">
+            {t("todayTitle")}
+          </h2>
+          {book.size > 0 && (
+            <Button asChild variant="ghost" className="-mr-3 h-auto min-h-11 py-2 whitespace-normal">
+              <Link href={dashboardRoutes.entries}>
+                {t("allRecords")}
+                <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
+              </Link>
+            </Button>
+          )}
+        </div>
         {todayGroup ? (
-          <EntryList days={[todayGroup]} today={today} entryKey={(entry) => entry.id} />
+          <EntryList days={[todayGroup]} today={today} entryKey={(entry) => entry.key} />
         ) : (
           <div className="rounded-2xl border border-dashed bg-background p-8 text-center">
             <InboxIcon aria-hidden="true" className="mx-auto size-10 text-muted-foreground" />

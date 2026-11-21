@@ -41,6 +41,27 @@ export function monthOf(date: IsoDate): string {
   return date.slice(0, 7);
 }
 
+const MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/;
+
+/** True for a real month such as "2026-11" (months are written YYYY-MM). */
+export function isMonth(value: string): boolean {
+  return MONTH_PATTERN.test(value);
+}
+
+/** "2026-11" + 1 → "2026-12", "2026-01" − 1 → "2025-12". */
+export function shiftMonth(month: string, delta: number): string {
+  const match = MONTH_PATTERN.exec(month);
+  if (!match) throw new RangeError(`Not a month: ${month}`);
+  const index = Number(match[1]) * 12 + (Number(match[2]) - 1) + delta;
+  const year = Math.floor(index / 12);
+  return `${String(year).padStart(4, "0")}-${pad((index % 12) + 1)}`;
+}
+
+/** "2026-11" → "2026-11-01". */
+export function firstDayOfMonth(month: string): IsoDate {
+  return `${month}-01`;
+}
+
 /** A date at noon UTC, so formatting it in any timezone shows the same day. */
 export function isoDateToDate(date: IsoDate): Date {
   const [year, month, day] = date.split("-").map(Number);

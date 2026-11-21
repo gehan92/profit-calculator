@@ -28,9 +28,13 @@ const ICONS: Record<NavKey, LucideIcon> = {
 /**
  * Screens that exist so far. The others show "Soon" instead of a link that
  * would open "page not found"; each one is added here on its day in the
- * plan (entries: Day 9, summary + settings: Day 10).
+ * plan (summary + settings: Day 10).
  */
-const READY = new Set<DashboardRoute>([dashboardRoutes.home, dashboardRoutes.add]);
+const READY = new Set<DashboardRoute>([
+  dashboardRoutes.home,
+  dashboardRoutes.add,
+  dashboardRoutes.entries,
+]);
 
 interface DashboardNavProps {
   role: MemberRole;

@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { EntryDeleteProvider } from "@/components/dashboard/entry-delete-provider";
+import { OfflineStatus } from "@/components/offline/offline-status";
 import type { AppLocale } from "@/i18n/config";
 import { routing } from "@/i18n/routing";
 import { getDashboardContext } from "@/lib/auth/dashboard-access";
@@ -31,14 +33,17 @@ export default async function DashboardLayout({ children, params }: LayoutProps<
         {t("skipToContent")}
       </a>
       <DashboardHeader locale={locale} />
+      {/* Amber banner while offline, and the sender for records added offline. */}
+      <OfflineStatus />
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 gap-8 lg:px-6">
         <Suspense fallback={<div className="hidden w-56 shrink-0 lg:block" />}>
           <RoleNav locale={locale} variant="sidebar" />
         </Suspense>
         {/* Room at the bottom on phones so the tab bar never covers content. */}
+        {/* The provider keeps "delete with Undo" running while people move between screens. */}
         <main id="main-content" className="min-w-0 flex-1 pb-24 lg:pb-12">
-          {children}
+          <EntryDeleteProvider>{children}</EntryDeleteProvider>
         </main>
       </div>
 

@@ -21,6 +21,9 @@ export const ENTRY_NOTE_MAX_LENGTH = 200;
 /** 12 whole digits (the amount field's limit) plus cents; still an exact JavaScript number. */
 export const MAX_AMOUNT_CENTS = 99_999_999_999_999;
 
+/** How long the Undo button stays after deleting an entry (Part D2: "5-second Undo"). */
+export const DELETE_UNDO_SECONDS = 5;
+
 /**
  * Most entries one "import" request carries. The browser sends bigger piles
  * in batches; 500 entries with long notes still fit Next.js's 1 MB action limit.
@@ -42,7 +45,8 @@ export const DEFAULT_CATEGORY = {
   expense: "stock",
 } as const satisfies Record<EntryType, Category>;
 
-const ALL_CATEGORIES = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES] as const;
+/** Every category key, income first. */
+export const ALL_CATEGORIES = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES] as const;
 
 /**
  * The latest entry date the server accepts ("no future dates", Part F5).
@@ -94,3 +98,11 @@ export const clientEntrySchema = z
   .refine(categoryFitsType, CATEGORY_MISMATCH);
 
 export type ClientEntry = z.output<typeof clientEntrySchema>;
+
+/** An entry as stored in the database, in the shape screens use. */
+export interface StoredEntry extends EntryFields {
+  id: string;
+  createdAt: string;
+  /** Set when the entry came from guest mode or the offline queue; `null` when added online. */
+  clientId: string | null;
+}
