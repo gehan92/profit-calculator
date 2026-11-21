@@ -57,6 +57,11 @@ export function shiftMonth(month: string, delta: number): string {
   return `${String(year).padStart(4, "0")}-${pad((index % 12) + 1)}`;
 }
 
+/** "2026-11-05" → 5. */
+export function dayOfMonth(date: IsoDate): number {
+  return Number(date.slice(8, 10));
+}
+
 /** "2026-11" → "2026-11-01". */
 export function firstDayOfMonth(month: string): IsoDate {
   return `${month}-01`;
@@ -77,4 +82,26 @@ function utcDate(year: number, month: number, day: number): Date {
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
+}
+
+/** Days in a month: "2026-11" → 30, "2028-02" → 29. */
+export function daysInMonth(month: string): number {
+  const match = MONTH_PATTERN.exec(month);
+  if (!match) throw new RangeError(`Not a month: ${month}`);
+  return utcDate(Number(match[1]), Number(match[2]) + 1, 0).getUTCDate();
+}
+
+/** The parts of a date, for writing it in words: "2026-11-21" → year 2026, month 11, day 21, weekday 6 (Saturday). */
+export interface DateParts {
+  year: number;
+  /** 1–12. */
+  month: number;
+  day: number;
+  /** 0 = Sunday … 6 = Saturday. */
+  weekday: number;
+}
+
+export function dateParts(date: IsoDate): DateParts {
+  const [year, month, day] = date.split("-").map(Number);
+  return { year, month, day, weekday: isoDateToDate(date).getUTCDay() };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CurrencyMismatchError, Money } from "./money";
+import { CurrencyMismatchError, isSupportedCurrency, Money, SUPPORTED_CURRENCIES } from "./money";
 
 describe("Money.parse", () => {
   it.each([
@@ -113,5 +113,41 @@ describe("Money.format (Part F5 testing checklist)", () => {
     expect(Money.fromCents(-320_000).format("en", { trimZeroCents: true })).toBe(
       nbsp("-Rs 3,200"),
     );
+  });
+});
+
+describe("Settings currencies", () => {
+  it("knows which currencies a shop can choose", () => {
+    expect(SUPPORTED_CURRENCIES[0]).toBe("LKR");
+    expect(isSupportedCurrency("USD")).toBe(true);
+    expect(isSupportedCurrency("XYZ")).toBe(false);
+    expect(isSupportedCurrency("lkr")).toBe(false);
+  });
+
+  it.each(SUPPORTED_CURRENCIES)("%s prints the same sign in every language (server = phone)", (currency) => {
+    const en = Money.fromCents(1_234_500, currency).format("en");
+    const ta = Money.fromCents(1_234_500, currency).format("ta");
+    expect(en).toContain("12,345.00");
+    expect(ta.split(" ")[1]).toBe(en.split(" ")[1]);
+  });
+
+  it("writes a few signs as people expect", () => {
+    expect(Money.fromCents(500_000, "USD").format("en")).toBe("$ 5,000.00");
+    expect(Money.fromCents(500_000, "INR").format("si", { trimZeroCents: true })).toBe("₹ 5,000");
+    expect(Money.fromCents(-500_000, "GBP").format("en")).toBe("-£ 5,000.00");
+  });
+});
+
+describe("Money.toDecimalString (CSV export)", () => {
+  it.each([
+    [150_050, "1500.50"],
+    [2_500_000, "25000.00"],
+    [5, "0.05"],
+    [0, "0.00"],
+    [-5, "-0.05"],
+    [-123_456, "-1234.56"],
+    [99_999_999_999_999, "999999999999.99"],
+  ])("writes %i cents as %s", (cents, text) => {
+    expect(Money.fromCents(cents).toDecimalString()).toBe(text);
   });
 });

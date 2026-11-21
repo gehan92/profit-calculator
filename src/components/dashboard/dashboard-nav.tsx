@@ -34,6 +34,8 @@ const READY = new Set<DashboardRoute>([
   dashboardRoutes.home,
   dashboardRoutes.add,
   dashboardRoutes.entries,
+  dashboardRoutes.summary,
+  dashboardRoutes.settings,
 ]);
 
 interface DashboardNavProps {

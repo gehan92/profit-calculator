@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppLocale } from "@/i18n/config";
+import type { CurrencyCode } from "@/lib/money";
 import type { MemberRole } from "@/lib/roles";
 import type { Database, Tables } from "@/lib/supabase/types";
 
@@ -20,6 +21,13 @@ export class BusinessQueryError extends Error {
 }
 
 const BUSINESS_COLUMNS = "id, name, currency, locale, plan" as const;
+
+/** What the Settings screen changes about a shop (Part D2 Settings). */
+export interface ShopSettings {
+  name: string;
+  currency: CurrencyCode;
+  locale: AppLocale;
+}
 
 /** Shop names are 1–60 characters (Part D2 Settings; database check). */
 export const SHOP_NAME_MAX_LENGTH = 60;
@@ -75,6 +83,21 @@ export class BusinessRepository {
 
     const business = await this.createDefault(userId, locale, defaultName);
     return { membership: { business, role: "owner" }, created: true };
+  }
+
+  /** Changes the shop's name, currency and language. RLS allows this only for its Owner. */
+  async updateSettings(businessId: string, settings: ShopSettings): Promise<void> {
+    const { data, error } = await this.db
+      .from("businesses")
+      .update({ name: settings.name, currency: settings.currency, locale: settings.locale })
+      .eq("id", businessId)
+      .select("id");
+
+    if (error) throw new BusinessQueryError("save the shop settings", error);
+    // RLS hides rows instead of failing, so "0 rows changed" means "not allowed".
+    if (data.length === 0) {
+      throw new BusinessQueryError("save the shop settings", { message: "not the owner" });
+    }
   }
 
   /** Renames a shop. RLS allows this only for its Owner. */

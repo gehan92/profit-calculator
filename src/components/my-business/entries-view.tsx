@@ -1,15 +1,16 @@
 "use client";
 
 import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PlusIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { useCalcFormat } from "@/components/calculators/use-calc-format";
 import { useEntryDelete } from "@/components/dashboard/entry-delete-provider";
 import { useQueuedEntries } from "@/components/offline/use-queued-entries";
+import { useDateLabels } from "@/components/use-date-labels";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
-import { firstDayOfMonth, isoDateToDate, monthOf, shiftMonth } from "@/lib/dates";
+import { monthOf, shiftMonth } from "@/lib/dates";
 import { mergeQueuedEntries, type DisplayEntry } from "@/lib/entries/display-entry";
 import {
   ALL_CATEGORIES,
@@ -57,7 +58,7 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
   const tEntry = useTranslations("entry");
   const tBusiness = useTranslations("myBusiness");
   const tCalc = useTranslations("calcUi");
-  const format = useFormatter();
+  const dates = useDateLabels();
   const { money } = useCalcFormat();
   const today = useToday();
   const queued = useQueuedEntries();
@@ -95,11 +96,7 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
   if (today === null) return <EntriesSkeleton />;
 
   const hasFilters = Boolean(filters.type || filters.category);
-  const monthLabel = format.dateTime(isoDateToDate(firstDayOfMonth(filters.month)), {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  const monthLabel = dates.monthYear(filters.month);
   const linkTo = (next: EntryFilters) =>
     `${dashboardRoutes.entries}${entryFiltersToQuery(next, defaultMonth)}`;
   const totals = book.size > 0 ? EntryBook.total(rows) : null;
@@ -183,6 +180,12 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
             tone={isLoss ? "loss" : "profit"}
           />
         </dl>
+      )}
+
+      {showTotals && totals && totals.hiddenCostCents > 0 && (
+        <p className="money text-sm text-muted-foreground">
+          {tBusiness("hiddenCosts", { amount: money(totals.hiddenCostCents) })}
+        </p>
       )}
 
       {truncated && (

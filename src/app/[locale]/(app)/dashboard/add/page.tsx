@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
+import { CurrencyProvider } from "@/components/currency-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -68,5 +69,9 @@ async function AddEntryContent({
   const initialType: EntryType = type === "expense" ? "expense" : "income";
 
   // `key`: the two home buttons open the same page; start fresh for each type.
-  return <AddEntryPanel key={initialType} role={membership.role} initialType={initialType} />;
+  return (
+    <CurrencyProvider currency={membership.business.currency}>
+      <AddEntryPanel key={initialType} role={membership.role} initialType={initialType} />
+    </CurrencyProvider>
+  );
 }

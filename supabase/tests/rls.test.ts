@@ -491,3 +491,153 @@ describe("Feedback: anyone can send, only the team can read", () => {
     expect(seen).toBe(1);
   });
 });
+
+describe("Settings: support access switch (Part D2)", () => {
+  it("a user switches support access on for 7 days and off again, for themselves only", async () => {
+    const switchedOn = await db.as(ids.ownerB, (s) =>
+      affected(
+        s,
+        "update profiles set support_access_until = now() + interval '7 days' where id = $1",
+        [ids.ownerB],
+      ),
+    );
+    expect(switchedOn).toBe(1);
+
+    const stored = await db.as(ids.ownerB, async (s) => {
+      const { rows } = await s.query<{ days: number }>(
+        "select round(extract(epoch from (support_access_until - now())) / 86400)::int as days from profiles where id = $1",
+        [ids.ownerB],
+      );
+      return rows[0].days;
+    });
+    expect(stored).toBe(7);
+
+    const switchedOff = await db.as(ids.ownerB, (s) =>
+      affected(s, "update profiles set support_access_until = null where id = $1", [ids.ownerB]),
+    );
+    expect(switchedOff).toBe(1);
+  });
+
+  it("nobody can switch support access on for another user (the row is hidden, nothing changes)", async () => {
+    const changed = await db.as(ids.ownerB, (s) =>
+      affected(
+        s,
+        "update profiles set support_access_until = now() + interval '7 days' where id = $1",
+        [ids.ownerA],
+      ),
+    );
+    expect(changed).toBe(0);
+
+    const untouched = await db.asService<{ support_access_until: string | null }>(
+      "select support_access_until from profiles where id = $1",
+      [ids.ownerA],
+    );
+    expect(untouched.rows[0].support_access_until).toBeNull();
+  });
+
+  it("a user cannot unblock themselves or change their role through the same table", async () => {
+    await expect(
+      db.as(ids.blocked, (s) =>
+        s.query("update profiles set status = 'active' where id = $1", [ids.blocked]),
+      ),
+    ).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe("Monthly summary query (Part F3): totals match the manual sum, even above 1,000 entries", () => {
+  // The exact query of the Summary page: run through the person's own session, so RLS applies.
+  const SUMMARY_SQL = `
+    select
+      coalesce(sum(amount_cents) filter (where type = 'income'), 0)::bigint  as income_cents,
+      coalesce(sum(amount_cents) filter (where type = 'expense'), 0)::bigint as expense_cents
+    from entries
+    where business_id = $1
+      and entry_date >= date_trunc('month', $2::date)
+      and entry_date <  date_trunc('month', $2::date) + interval '1 month'`;
+
+  const ENTRIES = 2_300;
+  const state = { owner: "", viewer: "", staff: "", other: "", shop: "", income: 0, expense: 0 };
+
+  beforeAll(async () => {
+    state.owner = await db.createUser("Summary owner");
+    state.viewer = await db.createUser("Summary viewer");
+    state.staff = await db.createUser("Summary staff");
+    state.other = await db.createUser("Summary other owner");
+    state.shop = await createShop(state.owner, "Summary Stores");
+    await db.asService(
+      `insert into business_members (business_id, user_id, role) values ($1, $2, 'viewer'), ($1, $3, 'staff')`,
+      [state.shop, state.viewer, state.staff],
+    );
+
+    // 2,300 entries in March 2025: income on every third one, amounts that differ per entry.
+    await db.asService(
+      `insert into entries (business_id, type, category, amount_cents, entry_date, created_by)
+       select $1,
+              case when n % 3 = 0 then 'income'::entry_type else 'expense'::entry_type end,
+              case when n % 3 = 0 then 'sales' else 'stock' end,
+              100 + (n * 37) % 90000,
+              date '2025-03-01' + (n % 31),
+              $2
+       from generate_series(1, ${ENTRIES}) as n`,
+      [state.shop, state.owner],
+    );
+    // Entries in the months around it must never leak in.
+    await db.asService(
+      `insert into entries (business_id, type, category, amount_cents, entry_date, created_by)
+       values ($1, 'income', 'sales', 99999999, date '2025-02-28', $2),
+              ($1, 'income', 'sales', 99999999, date '2025-04-01', $2)`,
+      [state.shop, state.owner],
+    );
+
+    // The manual sum, worked out here in plain code.
+    for (let n = 1; n <= ENTRIES; n++) {
+      const cents = 100 + ((n * 37) % 90000);
+      if (n % 3 === 0) state.income += cents;
+      else state.expense += cents;
+    }
+  }, 60_000);
+
+  const totalsFor = (userId: string) =>
+    db.as(userId, async (s) => {
+      const { rows } = await s.query<{ income_cents: string; expense_cents: string }>(SUMMARY_SQL, [
+        state.shop,
+        "2025-03-15",
+      ]);
+      return { income: Number(rows[0].income_cents), expense: Number(rows[0].expense_cents) };
+    });
+
+  it("the Owner and the Viewer get the same totals as adding every entry by hand", async () => {
+    expect(await totalsFor(state.owner)).toEqual({ income: state.income, expense: state.expense });
+    expect(await totalsFor(state.viewer)).toEqual({ income: state.income, expense: state.expense });
+  });
+
+  it("Staff get nothing (they can never work out totals) and another shop's Owner gets nothing", async () => {
+    expect(await totalsFor(state.staff)).toEqual({ income: 0, expense: 0 });
+    expect(await totalsFor(state.other)).toEqual({ income: 0, expense: 0 });
+  });
+
+  it("paging through the month 1,000 at a time returns every entry exactly once", async () => {
+    const pages = await db.as(state.viewer, async (s) => {
+      const seen: string[] = [];
+      let sum = 0;
+      for (let page = 0; page < 5; page++) {
+        const { rows } = await s.query<{ id: string; amount_cents: string }>(
+          `select id, amount_cents from entries
+           where business_id = $1 and entry_date >= '2025-03-01' and entry_date < '2025-04-01'
+           order by entry_date asc, id asc limit 1000 offset $2`,
+          [state.shop, page * 1000],
+        );
+        for (const row of rows) {
+          seen.push(row.id);
+          sum += Number(row.amount_cents);
+        }
+        if (rows.length < 1000) break;
+      }
+      return { seen, sum };
+    });
+
+    expect(pages.seen).toHaveLength(ENTRIES);
+    expect(new Set(pages.seen).size).toBe(ENTRIES);
+    expect(pages.sum).toBe(state.income + state.expense);
+  });
+});

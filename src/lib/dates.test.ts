@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  dayOfMonth,
+  dateParts,
+  daysInMonth,
   firstDayOfMonth,
   isIsoDate,
   isMonth,
@@ -67,6 +70,20 @@ describe("months", () => {
   it("gives the first day", () => {
     expect(firstDayOfMonth("2026-11")).toBe("2026-11-01");
   });
+
+  it("reads the day of the month", () => {
+    expect(dayOfMonth("2026-11-05")).toBe(5);
+    expect(dayOfMonth("2026-12-31")).toBe(31);
+  });
+
+  it("counts the days in a month, leap years included", () => {
+    expect(daysInMonth("2026-11")).toBe(30);
+    expect(daysInMonth("2026-12")).toBe(31);
+    expect(daysInMonth("2026-02")).toBe(28);
+    expect(daysInMonth("2028-02")).toBe(29);
+    expect(daysInMonth("2100-02")).toBe(28);
+    expect(() => daysInMonth("2026-13")).toThrow(RangeError);
+  });
 });
 
 describe("monthOf and isoDateToDate", () => {
@@ -76,5 +93,13 @@ describe("monthOf and isoDateToDate", () => {
 
   it("keeps the same calendar day", () => {
     expect(isoDateToDate("2026-11-15").toISOString()).toBe("2026-11-15T12:00:00.000Z");
+  });
+});
+
+describe("dateParts", () => {
+  it("splits a date and finds its weekday (0 = Sunday)", () => {
+    expect(dateParts("2026-11-21")).toEqual({ year: 2026, month: 11, day: 21, weekday: 6 });
+    expect(dateParts("2026-11-22").weekday).toBe(0);
+    expect(dateParts("2028-02-29")).toEqual({ year: 2028, month: 2, day: 29, weekday: 2 });
   });
 });

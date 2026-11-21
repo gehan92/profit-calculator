@@ -55,6 +55,15 @@ export function parseEntryFilters(
   };
 }
 
+/**
+ * The month from a page address (`?month=2026-10`), or `fallback` when it is
+ * missing or not a real month. The Summary page uses it.
+ */
+export function parseMonthParam(param: Param, fallback: string): string {
+  const month = first(param);
+  return month && isMonth(month) ? month : fallback;
+}
+
 /** The address query for these filters. The default month is left out. */
 export function entryFiltersToQuery(filters: EntryFilters, defaultMonth: string): string {
   const query = new URLSearchParams();

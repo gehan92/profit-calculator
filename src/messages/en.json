@@ -70,7 +70,8 @@
     "menu": "Account menu",
     "loggedInAs": "Logged in as",
     "calculators": "Free calculators",
-    "logout": "Log out"
+    "logout": "Log out",
+    "settings": "Settings"
   },
   "roleBadge": {
     "staff": "Staff",
@@ -101,7 +102,8 @@
     "addRecord": "Add a record",
     "pending": "Waiting to send",
     "locked": "Locked: only today's records can be changed",
-    "edit": "Change {category}, {amount}"
+    "edit": "Change {category}, {amount}",
+    "hiddenCost": "Hidden cost · in Real profit"
   },
   "offline": {
     "offlineTitle": "You are offline",
@@ -114,6 +116,140 @@
     "refused": "{count, plural, one {# record could not be saved and was removed} other {# records could not be saved and were removed}}",
     "queued": "Saved on this phone. It will be sent when you are back online.",
     "queueFull": "Too many records are waiting to be sent. Connect to the internet to send them."
+  },
+  "dates": {
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "monthsShort": {
+      "1": "Jan",
+      "2": "Feb",
+      "3": "Mar",
+      "4": "Apr",
+      "5": "May",
+      "6": "Jun",
+      "7": "Jul",
+      "8": "Aug",
+      "9": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dec"
+    },
+    "weekdays": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    },
+    "weekdaysShort": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    },
+    "pattern": {
+      "monthYear": "{month} {year}",
+      "longDay": "{weekday}, {month} {day}",
+      "shortDay": "{weekday}, {month} {day}",
+      "shortDayYear": "{weekday}, {month} {day}, {year}",
+      "dayMonthYear": "{month} {day}, {year}"
+    }
+  },
+  "summary": {
+    "title": "Monthly summary",
+    "ofIncome": "{percent} of income",
+    "vsMonthPercent": "vs {month}: {change} ({percent})",
+    "vsMonth": "vs {month}: {change}",
+    "chartTitle": "Profit each day",
+    "chartLabel": "Bar chart of the profit for each day of {month}. Green bars are profit, red bars are loss. The numbers are in the list \"Entries by day\".",
+    "topCosts": "Biggest costs",
+    "noCosts": "No costs recorded this month.",
+    "realProfit": "Real profit",
+    "realLoss": "Real loss",
+    "why": "Why?",
+    "whyBody": "Cash profit only counts the money that moves in the shop. But the family taking goods, your own pay, spoiled stock and transport are real costs too. Real profit takes them off, so you see what the shop truly earns.",
+    "cashProfit": "Cash profit",
+    "addAnotherCost": "Add another cost",
+    "noHiddenCostsViewer": "No hidden costs are recorded this month. The owner can add family use, owner salary, wastage and transport to see the real profit.",
+    "quickAddTitle": "Which costs are missing?",
+    "quickAddBody": "Most shops forget these costs. Add the ones that apply this month and your real profit shows here.",
+    "add": "Add",
+    "adding": "Adding…",
+    "costAdded": "{category} added",
+    "entriesByDay": "Entries by day",
+    "monthTotal": "Month total",
+    "seeRecords": "See all records of this month",
+    "truncated": "This month has too many records to add up. The numbers may be incomplete."
+  },
+  "settings": {
+    "title": "Settings",
+    "shopTitle": "My shop",
+    "shopName": "Shop name",
+    "shopNameRequired": "Please type a shop name.",
+    "shopNameTooLong": "Use 60 letters or fewer.",
+    "currency": "Currency",
+    "currencyNote": "Changing the currency only changes the sign shown. Your amounts are not converted.",
+    "language": "Language",
+    "languageNote": "After you save, the website changes to this language.",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Settings saved",
+    "saveFailed": "Could not save. Please try again.",
+    "exportTitle": "Download your records",
+    "exportBody": "A CSV file you can open in Excel or Google Sheets. It has every record of your shop.",
+    "exportButton": "Download CSV",
+    "exporting": "Preparing…",
+    "exportFailed": "Could not make the file. Please try again.",
+    "exportDone": "File downloaded",
+    "exportEmpty": "You have no records to download yet.",
+    "exportTruncated": "There are too many records for one file. The file has the oldest ones.",
+    "csvColumns": {
+      "date": "Date",
+      "type": "Type",
+      "category": "Category",
+      "amount": "Amount",
+      "currency": "Currency",
+      "note": "Note",
+      "addedAt": "Added at (UTC)"
+    },
+    "supportTitle": "Help from our team",
+    "supportBody": "Switch this on if you want our support team to look at your records and help you. It turns off by itself after 7 days.",
+    "supportLabel": "Let support see my records for 7 days",
+    "supportOn": "Support can see your records until {date}.",
+    "supportOff": "Support cannot see your records.",
+    "supportFailed": "Could not change this. Please try again.",
+    "accountTitle": "Your account",
+    "dangerTitle": "Delete my account",
+    "dangerBody": "This deletes your account, your shop and all its records for ever. It cannot be undone. Download your records first.",
+    "deleteButton": "Delete my account…",
+    "deleteDialogTitle": "Delete your account?",
+    "deleteDialogBody": "Your shop and all records will be deleted for ever. Anyone you invited loses access too. Type DELETE to confirm.",
+    "deleteTypeLabel": "Type DELETE",
+    "deleteConfirm": "Delete everything",
+    "deleting": "Deleting…",
+    "deleteFailed": "Could not delete your account. Please try again."
+  },
+  "accountDeleted": {
+    "title": "Your account is deleted",
+    "body": "Your account, your shop and all your records have been deleted. Thank you for trying Profit Calculator. The free calculators still work without an account.",
+    "home": "Back to the home page"
   },
   "entry": {
     "typeLegend": "Type",
@@ -167,7 +303,8 @@
     "dayProfit": "Profit {amount}",
     "dayLoss": "Loss {amount}",
     "entryCount": "{count, plural, one {# record} other {# records}}",
-    "vsYesterday": "{change} vs yesterday"
+    "vsYesterday": "{change} vs yesterday",
+    "hiddenCosts": "Hidden costs {amount} · counted in Real profit"
   },
   "try": {
     "metaTitle": "My Business — try it free",

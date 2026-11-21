@@ -87,6 +87,10 @@ const PERMISSIONS = {
   seeTotals: ["owner", "viewer"],
   /** "Move N records to your account?" after the first login. */
   importGuestEntries: ["owner"],
+  /** Download every record as a CSV file (Settings). */
+  exportData: ["owner"],
+  /** Change the shop name, currency and language (Settings). */
+  editShop: ["owner"],
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

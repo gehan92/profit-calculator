@@ -4,6 +4,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { CurrencyProvider } from "@/components/currency-context";
 import { AddButtons } from "@/components/dashboard/add-buttons";
 import { GuestImportPrompt } from "@/components/dashboard/guest-import-prompt";
 import { NoAccessToast } from "@/components/dashboard/no-access-toast";
@@ -71,7 +72,11 @@ async function HomeContent({ params, searchParams }: PageProps<"/[locale]/dashbo
       business.id,
       addDays(utcIsoDate(), -HOME_HISTORY_DAYS),
     );
-    ownerHome = <OwnerHome shopName={business.name} entries={entries} />;
+    ownerHome = (
+      <CurrencyProvider currency={business.currency}>
+        <OwnerHome shopName={business.name} entries={entries} />
+      </CurrencyProvider>
+    );
   }
 
   return (

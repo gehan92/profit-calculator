@@ -1,16 +1,17 @@
 "use client";
 
 import { ArrowRightIcon, InboxIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { useQueuedEntries } from "@/components/offline/use-queued-entries";
+import { useDateLabels } from "@/components/use-date-labels";
 import { EntryList } from "@/components/my-business/entry-list";
 import { TodaySummary } from "@/components/my-business/today-summary";
 import { useToday } from "@/components/my-business/use-today";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
-import { addDays, isoDateToDate, monthOf } from "@/lib/dates";
+import { addDays, monthOf } from "@/lib/dates";
 import { mergeQueuedEntries } from "@/lib/entries/display-entry";
 import type { StoredEntry } from "@/lib/entries/entry";
 import { EntryBook } from "@/lib/entries/entry-book";
@@ -36,7 +37,7 @@ interface OwnerHomeProps {
 export function OwnerHome({ shopName, entries }: OwnerHomeProps) {
   const t = useTranslations("ownerHome");
   const tBusiness = useTranslations("myBusiness");
-  const format = useFormatter();
+  const dates = useDateLabels();
   const today = useToday();
   const queued = useQueuedEntries();
   // A record deleted on the Entries screen stays hidden here too while its Undo time runs.
@@ -56,12 +57,7 @@ export function OwnerHome({ shopName, entries }: OwnerHomeProps) {
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{shopName}</h1>
         <p className="text-sm text-muted-foreground">
-          {format.dateTime(isoDateToDate(today), {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            timeZone: "UTC",
-          })}
+          {dates.longDay(today)}
         </p>
       </header>
 

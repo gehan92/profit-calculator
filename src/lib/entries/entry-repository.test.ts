@@ -2,7 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 import type { Database } from "@/lib/supabase/types";
 import type { ClientEntry, EntryFields } from "./entry";
-import { EntryQueryError, EntryRepository, judgeInsertError } from "./entry-repository";
+import {
+  ENTRIES_PAGE_LIMIT,
+  EntryQueryError,
+  EntryRepository,
+  judgeInsertError,
+  SUMMARY_MAX_PAGES,
+} from "./entry-repository";
 
 const fields: EntryFields = {
   type: "income",
@@ -29,7 +35,7 @@ function fakeDb(answer: (call: number) => Answer = () => ({ data: [], error: nul
         Promise.resolve({ data: null, error: null, ...answer(call) }).then(resolve),
     };
     for (const method of [
-      "insert", "update", "delete", "select", "eq", "gte", "lt", "order", "limit", "upsert",
+      "insert", "update", "delete", "select", "eq", "gte", "lt", "order", "limit", "upsert", "range",
     ]) {
       proxy[method] = (...args: unknown[]) => {
         calls.push({ method, args });
@@ -198,5 +204,88 @@ describe("EntryRepository.update and delete", () => {
       method: "update",
       args: [{ type: "income", category: "sales", amount_cents: 2_500_000, entry_date: "2026-11-21", note: "fixed" }],
     });
+  });
+});
+
+describe("EntryRepository.listMonthForSummary (every entry, not just the first 1,000)", () => {
+  const row = (n: number) => ({
+    type: "income",
+    category: "sales",
+    amount_cents: n,
+    entry_date: "2026-11-05",
+  });
+  const page = (size: number, firstNumber = 1) =>
+    Array.from({ length: size }, (_, index) => row(firstNumber + index));
+
+  it("reads page after page until a page comes back short", async () => {
+    const pages = [page(ENTRIES_PAGE_LIMIT), page(ENTRIES_PAGE_LIMIT, 1001), page(250, 2001)];
+    const { db, calls } = fakeDb((call) => ({ data: pages[call - 1] }));
+    // Each page is its own query chain, but every chain shares the call counter.
+    const repository = new EntryRepository(db);
+
+    const result = await repository.listMonthForSummary("shop-1", "2026-11");
+
+    expect(result.entries).toHaveLength(2250);
+    expect(result.truncated).toBe(false);
+    expect(result.entries[0]).toEqual({
+      type: "income",
+      category: "sales",
+      amountCents: 1,
+      entryDate: "2026-11-05",
+    });
+    // Pages 0–999, 1000–1999, 2000–2999.
+    expect(calls.filter((c) => c.method === "range").map((c) => c.args)).toEqual([
+      [0, 999],
+      [1000, 1999],
+      [2000, 2999],
+    ]);
+  });
+
+  it("asks only for this month, in a fixed order that never repeats a row", async () => {
+    const { db, calls } = fakeDb(() => ({ data: [] }));
+    await new EntryRepository(db).listMonthForSummary("shop-1", "2026-11");
+
+    expect(calls).toContainEqual({ method: "eq", args: ["business_id", "shop-1"] });
+    expect(calls).toContainEqual({ method: "gte", args: ["entry_date", "2026-11-01"] });
+    expect(calls).toContainEqual({ method: "lt", args: ["entry_date", "2026-12-01"] });
+    expect(calls.filter((c) => c.method === "order").map((c) => c.args[0])).toEqual(["entry_date", "id"]);
+  });
+
+  it("says so when the month is bigger than the page limit", async () => {
+    const { db } = fakeDb(() => ({ data: page(ENTRIES_PAGE_LIMIT) }));
+    const result = await new EntryRepository(db).listMonthForSummary("shop-1", "2026-11");
+    expect(result.truncated).toBe(true);
+    expect(result.entries).toHaveLength(SUMMARY_MAX_PAGES * ENTRIES_PAGE_LIMIT);
+  });
+
+  it("reports a database error", async () => {
+    const { db } = fakeDb(() => ({ error: { code: "42501", message: "rls" } }));
+    await expect(new EntryRepository(db).listMonthForSummary("shop-1", "2026-11")).rejects.toBeInstanceOf(
+      EntryQueryError,
+    );
+  });
+});
+
+describe("EntryRepository.listAll (CSV export)", () => {
+  it("reads every page, oldest first", async () => {
+    const full = Array.from({ length: ENTRIES_PAGE_LIMIT }, (_, index) => ({
+      id: `id-${index}`,
+      type: "expense",
+      category: "stock",
+      amount_cents: 100,
+      entry_date: "2026-11-01",
+      note: null,
+      created_at: "2026-11-01T05:00:00Z",
+      client_id: null,
+    }));
+    const pages = [full, full.slice(0, 7)];
+    const { db, calls } = fakeDb((call) => ({ data: pages[call - 1] }));
+
+    const result = await new EntryRepository(db).listAll("shop-1");
+
+    expect(result.entries).toHaveLength(ENTRIES_PAGE_LIMIT + 7);
+    expect(result.truncated).toBe(false);
+    expect(calls.filter((c) => c.method === "order").map((c) => [c.args[0], (c.args[1] as { ascending: boolean }).ascending]))
+      .toEqual([["entry_date", true], ["created_at", true], ["id", true], ["entry_date", true], ["created_at", true], ["id", true]]);
   });
 });

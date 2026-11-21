@@ -70,6 +70,13 @@ export function TodaySummary({ today, month, yesterday }: TodaySummaryProps) {
         </div>
       </dl>
 
+      {/* Family use, owner salary, wastage and transport are not in profit: only in Real profit. */}
+      {today.hiddenCostCents > 0 && (
+        <p className="money text-sm text-muted-foreground">
+          {t("hiddenCosts", { amount: money(today.hiddenCostCents) })}
+        </p>
+      )}
+
       <p className={cn("text-base font-medium", monthIsLoss && "text-loss")}>
         {monthIsLoss
           ? t("monthLoss", { amount: money(Math.abs(month.profitCents)) })

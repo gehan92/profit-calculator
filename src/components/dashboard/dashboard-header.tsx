@@ -5,6 +5,7 @@ import { Logo } from "@/components/layout/logo";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AppLocale } from "@/i18n/config";
 import { getDashboardContext } from "@/lib/auth/dashboard-access";
+import { canOpen, dashboardRoutes } from "@/lib/roles";
 import { AccountMenu } from "./account-menu";
 
 /**
@@ -44,7 +45,7 @@ async function ShopAndAccount({ locale }: { locale: AppLocale }) {
         )}
       </div>
       <LanguageSwitcher />
-      <AccountMenu email={user.email} />
+      <AccountMenu email={user.email} showSettings={canOpen(role, dashboardRoutes.settings)} />
     </>
   );
 }

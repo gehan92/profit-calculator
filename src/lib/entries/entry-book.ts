@@ -1,19 +1,37 @@
+import { isHiddenCost } from "@/config/categories";
 import { monthOf, type IsoDate } from "@/lib/dates";
 import type { EntryFields } from "./entry";
 
-/** Money in and out for some entries. Profit = Income − Expenses (Part D1). */
+/**
+ * Money in and out for some entries.
+ *
+ * - `expenseCents` are the shop's own costs (stock, rent, salary…).
+ * - `hiddenCostCents` are the costs owners forget (family use, owner salary,
+ *   wastage, transport): see `HIDDEN_COST_CATEGORIES`.
+ * - Profit = Income − Expenses (Part D1): the "cash profit".
+ * - Real profit = Profit − hidden costs (Part D2 "Real profit"), so a hidden
+ *   cost is subtracted once, never twice.
+ *
+ * Together, expenses + hidden costs are every expense entry: nothing is lost.
+ */
 export interface Totals {
   incomeCents: number;
   expenseCents: number;
+  hiddenCostCents: number;
   profitCents: number;
+  realProfitCents: number;
   count: number;
 }
 
+/** The fields that decide a total. */
+export type TotalEntry = Pick<EntryFields, "type" | "category" | "amountCents">;
+
 /** The fields a book needs from an entry; works for local and database entries alike. */
-export type BookEntry = Pick<EntryFields, "type" | "amountCents" | "entryDate"> & {
-  /** ISO time it was added, used to show the newest first within a day. */
-  createdAt: string;
-};
+export type BookEntry = TotalEntry &
+  Pick<EntryFields, "entryDate"> & {
+    /** ISO time it was added, used to show the newest first within a day. */
+    createdAt: string;
+  };
 
 export interface DayGroup<Entry extends BookEntry> {
   date: IsoDate;
@@ -27,7 +45,7 @@ export interface DayGroup<Entry extends BookEntry> {
  * profit and the "grouped by day, newest first, daily profit per day" list
  * (Part D2 "Home (today)" and "Entries list").
  *
- * Used by guest mode now and by the Owner screens from Day 8.
+ * Used by guest mode and by the Owner screens.
  */
 export class EntryBook<Entry extends BookEntry> {
   constructor(private readonly entries: readonly Entry[]) {}
@@ -64,17 +82,22 @@ export class EntryBook<Entry extends BookEntry> {
       }));
   }
 
-  static total(entries: readonly BookEntry[]): Totals {
+  static total(entries: readonly TotalEntry[]): Totals {
     let incomeCents = 0;
     let expenseCents = 0;
+    let hiddenCostCents = 0;
     for (const entry of entries) {
       if (entry.type === "income") incomeCents += entry.amountCents;
+      else if (isHiddenCost(entry.category)) hiddenCostCents += entry.amountCents;
       else expenseCents += entry.amountCents;
     }
+    const profitCents = incomeCents - expenseCents;
     return {
       incomeCents,
       expenseCents,
-      profitCents: incomeCents - expenseCents,
+      hiddenCostCents,
+      profitCents,
+      realProfitCents: profitCents - hiddenCostCents,
       count: entries.length,
     };
   }

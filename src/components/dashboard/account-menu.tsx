@@ -1,6 +1,6 @@
 "use client";
 
-import { CalculatorIcon, LogOutIcon, UserRoundIcon } from "lucide-react";
+import { CalculatorIcon, LogOutIcon, SettingsIcon, UserRoundIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { signOut } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "@/i18n/navigation";
+import { dashboardRoutes } from "@/lib/roles";
 
 const LOGOUT_FORM_ID = "logout-form";
 
 /**
  * The avatar menu in the dashboard header (Part C1.2): who is logged in,
- * the free calculators and Log out. Settings joins it on Day 10.
+ * Settings (Owner), the free calculators and Log out.
  */
-export function AccountMenu({ email }: { email: string | null }) {
+export function AccountMenu({ email, showSettings }: { email: string | null; showSettings: boolean }) {
   const t = useTranslations("account");
   const locale = useLocale();
 
@@ -49,6 +50,14 @@ export function AccountMenu({ email }: { email: string | null }) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
             </>
+          )}
+          {showSettings && (
+            <DropdownMenuItem asChild className="min-h-11">
+              <Link href={dashboardRoutes.settings}>
+                <SettingsIcon aria-hidden="true" />
+                {t("settings")}
+              </Link>
+            </DropdownMenuItem>
           )}
           <DropdownMenuItem asChild className="min-h-11">
             <Link href="/#calculators">

@@ -74,5 +74,8 @@ describe("can (Part B2 permission matrix)", () => {
 
   it("lets only the Owner move guest records in", () => {
     expect(MEMBER_ROLES.filter((role) => can(role, "importGuestEntries"))).toEqual(["owner"]);
+    // Settings: only the Owner changes the shop or downloads all records.
+    expect(MEMBER_ROLES.filter((role) => can(role, "exportData"))).toEqual(["owner"]);
+    expect(MEMBER_ROLES.filter((role) => can(role, "editShop"))).toEqual(["owner"]);
   });
 });

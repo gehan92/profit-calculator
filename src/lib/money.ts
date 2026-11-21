@@ -6,6 +6,17 @@ export type CurrencyCode = string;
 
 export const DEFAULT_CURRENCY: CurrencyCode = "LKR";
 
+/**
+ * The currencies a shop can choose in Settings (Part D2). Sri Lanka first;
+ * the rest are for owners who sell abroad or work in the Gulf. Changing the
+ * currency only changes the sign shown: amounts are never converted.
+ */
+export const SUPPORTED_CURRENCIES = ["LKR", "INR", "USD", "EUR", "GBP", "AUD", "AED"] as const;
+
+export function isSupportedCurrency(code: string): code is (typeof SUPPORTED_CURRENCIES)[number] {
+  return (SUPPORTED_CURRENCIES as readonly string[]).includes(code);
+}
+
 export interface MoneyFormatOptions {
   /** Hide ".00" when the amount is whole, e.g. on big result cards (Part E2). */
   trimZeroCents?: boolean;
@@ -130,6 +141,16 @@ export class Money {
     return fraction === 0 ? grouped : `${grouped}.${String(fraction).padStart(2, "0")}`;
   }
 
+  /**
+   * The amount as a plain decimal for spreadsheets: 150_050 → "1500.50", -5 → "-0.05".
+   * No thousands separators and always a dot, so Excel and Google Sheets read it as a number.
+   */
+  toDecimalString(): string {
+    const sign = this.isNegative ? "-" : "";
+    const size = Math.abs(this.cents);
+    return `${sign}${Math.floor(size / 100)}.${String(size % 100).padStart(2, "0")}`;
+  }
+
   /** Display string in the user's language, e.g. "Rs 25,000.00", "රු. 25,000.00". */
   format(locale: AppLocale, options: MoneyFormatOptions = {}): string {
     const hideCents = options.trimZeroCents === true && this.cents % 100 === 0;
@@ -208,6 +229,12 @@ export class Money {
  */
 const FIXED_SYMBOLS: Partial<Record<CurrencyCode, Record<AppLocale, string>>> = {
   LKR: { en: "Rs", si: "රු.", ta: "Rs" },
+  INR: { en: "₹", si: "₹", ta: "₹" },
+  USD: { en: "$", si: "$", ta: "$" },
+  EUR: { en: "€", si: "€", ta: "€" },
+  GBP: { en: "£", si: "£", ta: "£" },
+  AUD: { en: "A$", si: "A$", ta: "A$" },
+  AED: { en: "AED", si: "AED", ta: "AED" },
 };
 
 /** Sri Lanka writes amounts as 25,000.00 in English, Sinhala and Tamil alike. */

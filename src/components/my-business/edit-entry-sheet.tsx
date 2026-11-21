@@ -1,7 +1,7 @@
 "use client";
 
 import { Trash2Icon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { updateEntry } from "@/actions/entries";
@@ -9,7 +9,8 @@ import { useCalcFormat } from "@/components/calculators/use-calc-format";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { isoDateToDate, type IsoDate } from "@/lib/dates";
+import { type IsoDate } from "@/lib/dates";
+import { useDateLabels } from "@/components/use-date-labels";
 import type { DisplayEntry } from "@/lib/entries/display-entry";
 import { DELETE_UNDO_SECONDS, type EntryFields } from "@/lib/entries/entry";
 import { can, type MemberRole } from "@/lib/roles";
@@ -34,7 +35,7 @@ interface EditEntrySheetProps {
 export function EditEntrySheet({ entry, role, today, onClose, onDelete }: EditEntrySheetProps) {
   const t = useTranslations("entry");
   const tCategory = useTranslations("categories");
-  const format = useFormatter();
+  const dates = useDateLabels();
   const { money } = useCalcFormat();
   const [confirming, setConfirming] = useState(false);
 
@@ -124,12 +125,7 @@ export function EditEntrySheet({ entry, role, today, onClose, onDelete }: EditEn
             ? t("deleteBody", {
                 category: tCategory(entry.category),
                 amount: money(entry.amountCents),
-                date: format.dateTime(isoDateToDate(entry.entryDate), {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                  timeZone: "UTC",
-                }),
+                date: dates.dayMonthYear(entry.entryDate),
                 seconds: DELETE_UNDO_SECONDS,
               })
             : ""

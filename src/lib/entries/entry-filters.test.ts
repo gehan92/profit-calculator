@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { entryFiltersToQuery, matchesFilters, monthRange, parseEntryFilters } from "./entry-filters";
+import {
+  entryFiltersToQuery,
+  matchesFilters,
+  monthRange,
+  parseEntryFilters,
+  parseMonthParam,
+} from "./entry-filters";
 
 const NOW = "2026-11";
 
@@ -54,6 +60,20 @@ describe("entryFiltersToQuery", () => {
     const query = new URLSearchParams(entryFiltersToQuery(filters, NOW));
     expect(parseEntryFilters(Object.fromEntries(query), NOW)).toEqual(filters);
   });
+});
+
+describe("parseMonthParam", () => {
+  it("reads a real month, also from a repeated parameter", () => {
+    expect(parseMonthParam("2026-10", "2026-11")).toBe("2026-10");
+    expect(parseMonthParam(["2026-09", "2026-08"], "2026-11")).toBe("2026-09");
+  });
+
+  it.each([undefined, "", "2026-13", "2026-1", "november", "2026-11-05"])(
+    "falls back to the default for %j",
+    (value) => {
+      expect(parseMonthParam(value, "2026-11")).toBe("2026-11");
+    },
+  );
 });
 
 describe("monthRange", () => {

@@ -4,6 +4,7 @@ import type { IsoDate } from "@/lib/dates";
 import type { Database, Tables, TablesInsert } from "@/lib/supabase/types";
 import type { ClientEntry, EntryFields, StoredEntry } from "./entry";
 import { monthRange, type EntryFilters } from "./entry-filters";
+import type { SummaryEntry } from "./monthly-summary";
 
 /** Thrown when Supabase refuses or fails an entries query. `code` is the Postgres error code, if any. */
 export class EntryQueryError extends Error {
@@ -62,6 +63,14 @@ export function judgeInsertError(code: string | undefined): InsertVerdict {
 
 /** Entries one list page loads at most (Supabase also stops at 1,000 rows per request). */
 export const ENTRIES_PAGE_LIMIT = 1000;
+
+/** The most pages the summary reads for one month (50 × 1,000 = 50,000 entries). */
+export const SUMMARY_MAX_PAGES = 50;
+
+/** The most pages one export reads (200 × 1,000 = 200,000 entries). */
+export const EXPORT_MAX_PAGES = 200;
+
+const SUMMARY_COLUMNS = "type, category, amount_cents, entry_date" as const;
 
 const LIST_COLUMNS =
   "id, type, category, amount_cents, entry_date, note, created_at, client_id" as const;
@@ -122,6 +131,71 @@ export class EntryRepository {
 
     if (error) throw new EntryQueryError("load entries", error);
     return { entries: data.map(EntryRepository.fromRow), truncated: data.length >= ENTRIES_PAGE_LIMIT };
+  }
+
+  /**
+   * EVERY entry of one month, for the monthly summary (Part D2): totals must
+   * match the sum of all entries, so unlike `listMonth` this does not stop at
+   * the first 1,000. It reads page after page in a fixed order (date, then id,
+   * which never repeats) until a page comes back short.
+   * `truncated` is true only if the month is bigger than `SUMMARY_MAX_PAGES` pages.
+   */
+  async listMonthForSummary(
+    businessId: string,
+    month: string,
+  ): Promise<{ entries: SummaryEntry[]; truncated: boolean }> {
+    const { from, before } = monthRange(month);
+    const entries: SummaryEntry[] = [];
+
+    for (let page = 0; page < SUMMARY_MAX_PAGES; page++) {
+      const start = page * ENTRIES_PAGE_LIMIT;
+      const { data, error } = await this.db
+        .from("entries")
+        .select(SUMMARY_COLUMNS)
+        .eq("business_id", businessId)
+        .gte("entry_date", from)
+        .lt("entry_date", before)
+        .order("entry_date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(start, start + ENTRIES_PAGE_LIMIT - 1);
+
+      if (error) throw new EntryQueryError("load the summary", error);
+      entries.push(
+        ...data.map((row) => ({
+          type: row.type,
+          category: row.category as Category,
+          amountCents: row.amount_cents,
+          entryDate: row.entry_date,
+        })),
+      );
+      if (data.length < ENTRIES_PAGE_LIMIT) return { entries, truncated: false };
+    }
+    return { entries, truncated: true };
+  }
+
+  /**
+   * Every entry for the CSV export, oldest first (Part D2 Settings "export CSV").
+   * Pages like `listMonthForSummary`, with no month limit.
+   */
+  async listAll(businessId: string): Promise<{ entries: StoredEntry[]; truncated: boolean }> {
+    const entries: StoredEntry[] = [];
+
+    for (let page = 0; page < EXPORT_MAX_PAGES; page++) {
+      const start = page * ENTRIES_PAGE_LIMIT;
+      const { data, error } = await this.db
+        .from("entries")
+        .select(LIST_COLUMNS)
+        .eq("business_id", businessId)
+        .order("entry_date", { ascending: true })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(start, start + ENTRIES_PAGE_LIMIT - 1);
+
+      if (error) throw new EntryQueryError("export entries", error);
+      entries.push(...data.map(EntryRepository.fromRow));
+      if (data.length < ENTRIES_PAGE_LIMIT) return { entries, truncated: false };
+    }
+    return { entries, truncated: true };
   }
 
   /**

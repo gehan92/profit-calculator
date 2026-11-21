@@ -3,6 +3,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { CurrencyProvider } from "@/components/currency-context";
 import { EntriesView } from "@/components/my-business/entries-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { routing } from "@/i18n/routing";
@@ -62,13 +63,15 @@ async function EntriesContent({ params, searchParams }: PageProps<"/[locale]/das
       <h1 className="text-2xl font-semibold tracking-tight">
         {membership.role === "staff" ? t("myEntries") : t("entries")}
       </h1>
-      <EntriesView
-        role={membership.role}
-        entries={entries}
-        filters={filters}
-        defaultMonth={defaultMonth}
-        truncated={truncated}
-      />
+      <CurrencyProvider currency={membership.business.currency}>
+        <EntriesView
+          role={membership.role}
+          entries={entries}
+          filters={filters}
+          defaultMonth={defaultMonth}
+          truncated={truncated}
+        />
+      </CurrencyProvider>
     </div>
   );
 }

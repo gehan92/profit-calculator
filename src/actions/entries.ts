@@ -1,9 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth/current-user";
-import { BusinessRepository, type Membership } from "@/lib/business/business-repository";
+import { authorize } from "@/lib/auth/authorize";
+import { refreshDashboard } from "@/lib/dashboard-cache";
 import {
   clientEntrySchema,
   entryFieldsSchema,
@@ -13,35 +12,12 @@ import {
   type EntryFields,
 } from "@/lib/entries/entry";
 import { EntryQueryError, EntryRepository } from "@/lib/entries/entry-repository";
-import { can, type Permission } from "@/lib/roles";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
- * Entry Server Actions (Part F4.2). Each one: validate with zod â†’ get the
- * user from the Supabase session â†’ check the role â†’ write (RLS checks again)
- * â†’ refresh the dashboard â†’ return `{ ok, error? }`.
+ * Entry Server Actions (Part F4.2). Each one: validate with zod → get the
+ * user from the Supabase session → check the role → write (RLS checks again)
+ * → refresh the dashboard → return `{ ok, error? }`.
  */
-
-/** Every dashboard page shows entries, so all of them are refreshed. */
-function refreshDashboard(): void {
-  revalidatePath("/[locale]/dashboard", "layout");
-}
-
-type Access =
-  | { ok: true; supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>; membership: Membership }
-  | { ok: false; error: "notLoggedIn" | "notAllowed" };
-
-/** Loads the person's shop and role, and checks they may do `permission`. */
-async function authorize(permission: Permission): Promise<Access> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "notLoggedIn" };
-
-  const supabase = await createSupabaseServerClient();
-  const membership = await new BusinessRepository(supabase).findFirstMembership(user.id);
-  if (!membership || !can(membership.role, permission)) return { ok: false, error: "notAllowed" };
-
-  return { ok: true, supabase, membership };
-}
 
 // ------------------------------------------------------------------ addEntry
 
@@ -201,7 +177,7 @@ const importSchema = z
   });
 
 /**
- * "Move N records to your account?" â†’ Yes (Part D2, Owner, first login).
+ * "Move N records to your account?" → Yes (Part D2, Owner, first login).
  * Upserts on (business_id, client_id), so a retry never doubles anything.
  * The browser removes its copies only after `ok: true`.
  */

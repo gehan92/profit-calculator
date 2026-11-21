@@ -1,11 +1,12 @@
 "use client";
 
 import { ClockIcon, LockIcon, Trash2Icon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useCalcFormat } from "@/components/calculators/use-calc-format";
+import { useDateLabels } from "@/components/use-date-labels";
 import { Button } from "@/components/ui/button";
-import type { Category } from "@/config/categories";
-import { addDays, isoDateToDate, type IsoDate } from "@/lib/dates";
+import { isHiddenCost, type Category } from "@/config/categories";
+import { addDays, type IsoDate } from "@/lib/dates";
 import type { BookEntry, DayGroup } from "@/lib/entries/entry-book";
 import { cn } from "@/lib/utils";
 
@@ -49,19 +50,13 @@ export function EntryList<Entry extends ListEntry>({
   const tEntry = useTranslations("entry");
   const tEntries = useTranslations("entries");
   const tCategory = useTranslations("categories");
-  const format = useFormatter();
+  const dates = useDateLabels();
   const { money } = useCalcFormat();
 
   function dayLabel(date: IsoDate): string {
     if (date === today) return t("dayToday");
     if (date === addDays(today, -1)) return t("dayYesterday");
-    return format.dateTime(isoDateToDate(date), {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: date.slice(0, 4) === today.slice(0, 4) ? undefined : "numeric",
-      timeZone: "UTC",
-    });
+    return dates.shortDay(date, date.slice(0, 4) !== today.slice(0, 4));
   }
 
   return (
@@ -98,6 +93,9 @@ export function EntryList<Entry extends ListEntry>({
                   <>
                     <div className="min-w-0 flex-1 text-left">
                       <p className="font-medium">{category}</p>
+                      {entry.type === "expense" && isHiddenCost(entry.category) && (
+                        <p className="text-xs text-muted-foreground">{tEntries("hiddenCost")}</p>
+                      )}
                       {entry.pending && (
                         <p className="flex items-center gap-1 text-xs font-medium text-warning-foreground">
                           <ClockIcon aria-hidden="true" className="size-3.5" />
