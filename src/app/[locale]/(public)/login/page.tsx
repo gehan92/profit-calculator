@@ -35,6 +35,8 @@ export default async function LoginPage() {
         <div className="mb-8 space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-balance">{t("title")}</h1>
           <p className="text-pretty text-muted-foreground">{t("subtitle")}</p>
+          {/* Logging in for the first time creates the account: say so, so nobody looks for a sign-up form. */}
+          <p className="rounded-xl bg-accent px-3 py-2 text-sm text-pretty">{t("newHere")}</p>
         </div>
 
         {/* The form reads ?next= and ?error= from the address, so it streams in. */}

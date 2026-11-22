@@ -19,7 +19,7 @@
   },
   "login": {
     "metaTitle": "Log in",
-    "title": "Log in to save your records",
+    "title": "Log in or create your account",
     "subtitle": "Free. Keep your daily sales and costs safe, on any phone.",
     "google": "Continue with Google",
     "googleOpening": "Opening Google…",
@@ -37,7 +37,8 @@
     "failed": "Something went wrong. Please try again.",
     "callbackError": "We couldn't log you in. Please try again.",
     "privacy": "Your records are private. No ads inside your records.",
-    "agree": "By continuing you agree to our <terms>Terms</terms> and <privacy>Privacy Policy</privacy>."
+    "agree": "By continuing you agree to our <terms>Terms</terms> and <privacy>Privacy Policy</privacy>.",
+    "newHere": "New here? Just continue. We create your account for you. No password needed."
   },
   "dashboard": {
     "metaTitle": "My shop",
