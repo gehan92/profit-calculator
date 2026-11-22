@@ -40,16 +40,21 @@ export interface DailyStat {
   activeUsers: number;
 }
 
+/**
+ * One user in the list (Part B4): contact details are MASKED (k***@gmail.com)
+ * and there is no name; the full details need the user's permission.
+ */
 export interface AdminUserRow {
   id: string;
-  fullName: string | null;
-  email: string | null;
-  phone: string | null;
+  emailMasked: string | null;
+  phoneMasked: string | null;
   createdAt: string;
   lastActiveAt: string | null;
   platformRole: PlatformRole;
   status: string;
-  plan: string;
+  /** "free", "pro" or "business" right now. */
+  tier: string;
+  shopsCount: number;
   /** Entries in the user's own shops: a count, never amounts. */
   entriesCount: number;
 }
@@ -59,17 +64,13 @@ export interface AdminUserPage {
   total: number;
 }
 
-export interface AdminUserShop {
-  id: string;
-  name: string;
-  plan: string;
-  role: "owner" | "staff" | "viewer";
-  entriesCount: number;
-}
-
-export interface AdminUserDetail extends Omit<AdminUserRow, "plan" | "entriesCount"> {
+/** One user's page: the same masked facts plus the support-access status and counts. */
+export interface AdminUserSummary extends AdminUserRow {
   supportAccessUntil: string | null;
-  shops: AdminUserShop[];
+  /** True while the user's "allow support to view my account" switch is on. */
+  supportAccessOn: boolean;
+  /** Shops they belong to as Staff or Viewer (not owner). */
+  membershipsCount: number;
 }
 
 export interface FeedbackRow {
@@ -107,25 +108,20 @@ const statsSchema = z.object({
   language_split: z.record(z.string(), z.number()),
 });
 
-const detailSchema = z.object({
+const summarySchema = z.object({
   id: z.string(),
-  full_name: z.string().nullable(),
-  email: z.string().nullable(),
-  phone: z.string().nullable(),
+  email_masked: z.string().nullable(),
+  phone_masked: z.string().nullable(),
   created_at: z.string(),
   last_active_at: z.string().nullable(),
   platform_role: z.enum(["user", "support", "admin"]),
   status: z.string(),
+  tier: z.string(),
   support_access_until: z.string().nullable(),
-  shops: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      plan: z.string(),
-      role: z.enum(["owner", "staff", "viewer"]),
-      entries_count: z.number(),
-    }),
-  ),
+  support_access_on: z.boolean(),
+  shops_count: z.number(),
+  memberships_count: z.number(),
+  entries_count: z.number(),
 });
 
 // ------------------------------------------------------------------- repository
@@ -168,11 +164,15 @@ export class AdminRepository {
     return data.map((row) => ({ date: row.day, signups: row.signups, activeUsers: row.active_users }));
   }
 
-  /** One page of users, newest first, optionally filtered by part of an email, phone or name. */
+  /**
+   * One page of users, newest first. With no search text it lists the newest
+   * users; with text it finds the ONE user whose email, phone or user ID is
+   * exactly that text (Part B4: no guessing from part of a name).
+   */
   async listUsers(options: { search?: string; page?: number; pageSize?: number } = {}): Promise<AdminUserPage> {
     const { search = "", page = 1, pageSize = ADMIN_PAGE_SIZE } = options;
-    const { data, error } = await this.db.rpc("admin_users", {
-      p_search: search,
+    const { data, error } = await this.db.rpc("admin_find_users", {
+      p_query: search,
       p_limit: pageSize,
       p_offset: (page - 1) * pageSize,
     });
@@ -181,44 +181,41 @@ export class AdminRepository {
     return {
       users: data.map((row) => ({
         id: row.user_id,
-        fullName: row.full_name,
-        email: row.email,
-        phone: row.phone,
+        emailMasked: row.email_masked ?? null,
+        phoneMasked: row.phone_masked ?? null,
         createdAt: row.created_at,
-        lastActiveAt: row.last_active_at,
+        lastActiveAt: row.last_active_at ?? null,
         platformRole: row.platform_role,
         status: row.status,
-        plan: row.plan,
+        tier: row.tier,
+        shopsCount: Number(row.shops_count),
         entriesCount: Number(row.entries_count),
       })),
       total: data.length > 0 ? Number(data[0].total_count) : 0,
     };
   }
 
-  /** One user's account info and shops, or `null` when there is no such user. */
-  async userDetail(userId: string): Promise<AdminUserDetail | null> {
-    const { data, error } = await this.db.rpc("admin_user_detail", { p_user_id: userId });
+  /** One user's masked facts and counts, or `null` when there is no such user. */
+  async userSummary(userId: string): Promise<AdminUserSummary | null> {
+    const { data, error } = await this.db.rpc("admin_user_summary", { p_user_id: userId });
     if (error) throw new AdminQueryError("load the user", error);
     if (data === null) return null;
 
-    const detail = detailSchema.parse(data);
+    const summary = summarySchema.parse(data);
     return {
-      id: detail.id,
-      fullName: detail.full_name,
-      email: detail.email,
-      phone: detail.phone,
-      createdAt: detail.created_at,
-      lastActiveAt: detail.last_active_at,
-      platformRole: detail.platform_role,
-      status: detail.status,
-      supportAccessUntil: detail.support_access_until,
-      shops: detail.shops.map((shop) => ({
-        id: shop.id,
-        name: shop.name,
-        plan: shop.plan,
-        role: shop.role,
-        entriesCount: shop.entries_count,
-      })),
+      id: summary.id,
+      emailMasked: summary.email_masked,
+      phoneMasked: summary.phone_masked,
+      createdAt: summary.created_at,
+      lastActiveAt: summary.last_active_at,
+      platformRole: summary.platform_role,
+      status: summary.status,
+      tier: summary.tier,
+      supportAccessUntil: summary.support_access_until,
+      supportAccessOn: summary.support_access_on,
+      shopsCount: summary.shops_count,
+      membershipsCount: summary.memberships_count,
+      entriesCount: summary.entries_count,
     };
   }
 

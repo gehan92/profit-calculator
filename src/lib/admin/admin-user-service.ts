@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PlatformRole } from "@/lib/roles";
 import type { Database } from "@/lib/supabase/types";
 import { AuditLog } from "./audit-log";
+import { maskEmail } from "./mask";
 import { matchesTyped, refuseUserAction } from "./user-rules";
 
 export type UserActionError =
@@ -116,7 +117,8 @@ export class AdminUserService {
       actorEmail: this.actor.email,
       action,
       targetUserId: target.id,
-      details: { email: target.email, name: target.fullName },
+      // Masked, like everywhere an admin sees a user (Part B4); the id says who it was.
+      details: { email: maskEmail(target.email) },
     });
     return { ok: true, auditSaved };
   }

@@ -73,7 +73,7 @@ describe("AdminUserService.setBlocked", () => {
         actor_id: "admin-1",
         action: "user.block",
         target_user_id: "user-1",
-        details: { actor_email: "me@example.com", email: "kamala@example.com", name: "Kamala" },
+        details: { actor_email: "me@example.com", email: "k***@example.com" },
       },
     ]);
   });
@@ -118,7 +118,7 @@ describe("AdminUserService.deleteUser", () => {
     const result = await new AdminUserService(db, actor).deleteUser("user-1", "  Kamala@Example.com ");
     expect(result).toEqual({ ok: true, auditSaved: true });
     expect(done.deleted).toEqual(["user-1"]);
-    expect(done.audit[0]).toMatchObject({ action: "user.delete", target_user_id: "user-1", details: { email: "kamala@example.com" } });
+    expect(done.audit[0]).toMatchObject({ action: "user.delete", target_user_id: "user-1", details: { email: "k***@example.com" } });
   });
 
   it("deletes nothing when the typed email is wrong or empty", async () => {

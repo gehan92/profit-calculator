@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { TestDatabase, type Session } from "./helpers/test-database";
 
 /**
- * Admin panel database rules (Part D4, Part B3, migration 0003):
+ * Admin panel database rules (Part D4, Part B3/B4, migrations 0003 and 0005):
  * Admin and Support see account info and COUNTS, never a shop's money;
  * everybody else is refused; only server code (secret key) writes the audit log.
  */
@@ -31,19 +31,19 @@ async function affected(s: Session, sql: string, params: unknown[] = []): Promis
 
 type UserRow = {
   user_id: string;
-  full_name: string | null;
-  email: string | null;
-  phone: string | null;
+  email_masked: string | null;
+  phone_masked: string | null;
   platform_role: string;
   status: string;
-  plan: string;
+  tier: string;
+  shops_count: number;
   entries_count: number;
   total_count: number;
 };
 
 const listUsers = (userId: string | null, search: string | null, limit = 25, offset = 0) =>
   db.as(userId, async (s) => {
-    const { rows } = await s.query<UserRow>("select * from admin_users($1, $2, $3)", [search, limit, offset]);
+    const { rows } = await s.query<UserRow>("select * from admin_find_users($1, $2, $3)", [search, limit, offset]);
     return rows;
   });
 
@@ -70,7 +70,11 @@ beforeAll(async () => {
     });
   ids.shop = await shop(ids.owner, "Kamala Stores");
   ids.otherShop = await shop(ids.other, "Sunil Traders");
-  await db.asService("update businesses set plan = 'pro' where id = $1", [ids.otherShop]);
+  await db.asService(
+    `insert into subscriptions (user_id, plan_code, gateway, status, currency, current_period_end)
+     values ($1, 'pro_monthly', 'paddle', 'active', 'USD', now() + interval '30 days')`,
+    [ids.other],
+  );
 
   // Kamala has 3 entries with amounts that must never reach the admin.
   await db.as(ids.owner, async (s) => {
@@ -155,51 +159,53 @@ describe("admin_daily_stats()", () => {
   });
 });
 
-describe("admin_users()", () => {
-  it("lists everyone for the Admin: contact, plan, status and the number of entries", async () => {
+describe("admin_find_users(): masked contact, exact search (Part B4, migration 0005)", () => {
+  it("lists everyone for the Admin with masked contact, tier, status and counts", async () => {
     const rows = await listUsers(ids.admin, null);
     expect(rows).toHaveLength(5);
     expect(rows.every((row) => row.total_count === 5)).toBe(true);
 
     const kamala = rows.find((row) => row.user_id === ids.owner)!;
     expect(kamala).toMatchObject({
-      full_name: "Kamala Perera",
-      email: "kamala@example.com",
-      phone: "+94771234567",
+      email_masked: "k***@example.com",
+      phone_masked: "+947 *** **67",
       platform_role: "user",
       status: "active",
-      plan: "free",
+      tier: "free",
+      shops_count: 1,
       entries_count: 3,
     });
-    expect(rows.find((row) => row.user_id === ids.other)?.plan).toBe("pro");
+    expect(rows.find((row) => row.user_id === ids.other)?.tier).toBe("pro");
     expect(rows.find((row) => row.user_id === ids.blocked)?.status).toBe("blocked");
+  });
+
+  it("never returns a full email, a full phone number or a name", async () => {
+    const rows = await listUsers(ids.admin, null);
+    const text = JSON.stringify(rows);
+    expect(text).not.toMatch(/kamala@example\.com|sunil@shop\.lk|\+94771234567|Kamala|Perera|Sunil/);
+    expect(Object.keys(rows[0]).sort()).toEqual(
+      [
+        "created_at", "email_masked", "entries_count", "last_active_at", "phone_masked",
+        "platform_role", "shops_count", "status", "tier", "total_count", "user_id",
+      ].sort(),
+    );
   });
 
   it("is open to Support too (Part D4: Users — Support, Admin)", async () => {
     expect(await listUsers(ids.support, null)).toHaveLength(5);
   });
 
-  it("returns no amounts, notes or categories: only account info and a count", async () => {
-    const rows = await listUsers(ids.admin, "kamala");
-    expect(Object.keys(rows[0]).sort()).toEqual(
-      [
-        "created_at", "email", "entries_count", "full_name", "last_active_at", "phone",
-        "plan", "platform_role", "status", "total_count", "user_id",
-      ].sort(),
-    );
+  it("finds ONE user by the exact email, phone or user ID, in any letter case", async () => {
+    expect((await listUsers(ids.admin, "KAMALA@example.com")).map((row) => row.user_id)).toEqual([ids.owner]);
+    expect((await listUsers(ids.admin, "  sunil@shop.lk  ")).map((row) => row.user_id)).toEqual([ids.other]);
+    expect((await listUsers(ids.admin, "+94771234567")).map((row) => row.user_id)).toEqual([ids.owner]);
+    expect((await listUsers(ids.admin, ids.other.toUpperCase())).map((row) => row.user_id)).toEqual([ids.other]);
   });
 
-  it("finds a user by part of the email, phone or name, in any letter case", async () => {
-    expect((await listUsers(ids.admin, "SHOP.LK")).map((row) => row.user_id)).toEqual([ids.other]);
-    expect((await listUsers(ids.admin, "771234")).map((row) => row.user_id)).toEqual([ids.owner]);
-    expect((await listUsers(ids.admin, "perera")).map((row) => row.user_id)).toEqual([ids.owner]);
-    expect((await listUsers(ids.admin, "  kamala  ")).map((row) => row.user_id)).toEqual([ids.owner]);
-    expect(await listUsers(ids.admin, "nobody-has-this")).toEqual([]);
-  });
-
-  it("treats % and _ as plain letters, not as wildcards", async () => {
-    expect(await listUsers(ids.admin, "%")).toEqual([]);
-    expect(await listUsers(ids.admin, "k_mala")).toEqual([]);
+  it("does not find anyone by part of an email, a name or a wildcard (no guessing)", async () => {
+    for (const text of ["kamala", "SHOP.LK", "771234", "perera", "%", "k_mala", "k%", "example.com"]) {
+      expect(await listUsers(ids.admin, text)).toEqual([]);
+    }
   });
 
   it("pages through the list and says how many match in total", async () => {
@@ -217,41 +223,127 @@ describe("admin_users()", () => {
     await expect(listUsers(ids.blocked, null)).rejects.toThrow(/forbidden/);
     await expect(listUsers(null, null)).rejects.toThrow(/permission denied/);
   });
+
+  it("the old functions that showed full contact details are gone", async () => {
+    await expect(db.as(ids.admin, (s) => s.query("select * from admin_users(null, 5, 0)"))).rejects.toThrow(
+      /does not exist/,
+    );
+    await expect(
+      db.as(ids.admin, (s) => s.query("select admin_user_detail($1)", [ids.owner])),
+    ).rejects.toThrow(/does not exist/);
+  });
 });
 
-describe("admin_user_detail()", () => {
-  const detail = (userId: string | null, target: string) =>
+describe("admin_user_summary(): one user, masked, counts only", () => {
+  const summary = (userId: string | null, target: string) =>
     db.as(userId, async (s) => {
-      const { rows } = await s.query<{ detail: Record<string, unknown> | null }>(
-        "select admin_user_detail($1) as detail",
+      const { rows } = await s.query<{ result: Record<string, unknown> | null }>(
+        "select admin_user_summary($1) as result",
         [target],
       );
-      return rows[0].detail;
+      return rows[0].result;
     });
 
-  it("shows account info, support-access status and each shop with the role and a count", async () => {
-    const result = await detail(ids.admin, ids.owner);
-    expect(result).toMatchObject({
+  it("shows masked contact, status, tier, support-access status and counts", async () => {
+    expect(await summary(ids.admin, ids.owner)).toMatchObject({
       id: ids.owner,
-      full_name: "Kamala Perera",
-      email: "kamala@example.com",
-      phone: "+94771234567",
+      email_masked: "k***@example.com",
+      phone_masked: "+947 *** **67",
       status: "active",
       platform_role: "user",
+      tier: "free",
       support_access_until: null,
-      shops: [{ id: ids.shop, name: "Kamala Stores", plan: "free", role: "owner", entries_count: 3 }],
+      support_access_on: false,
+      shops_count: 1,
+      memberships_count: 1,
+      entries_count: 3,
     });
   });
 
-  it("is open to Support and shows nothing about money", async () => {
-    const result = await detail(ids.support, ids.owner);
-    expect(JSON.stringify(result)).not.toMatch(/amount|cents|note|category|2500000/);
+  it("shows no name, no full contact, no shop name and nothing about money", async () => {
+    const text = JSON.stringify(await summary(ids.support, ids.owner));
+    expect(text).not.toMatch(/Kamala|Perera|kamala@example\.com|\+94771234567|Stores|amount|cents|note|category|2500000/);
   });
 
   it("returns null for an unknown user and refuses ordinary users", async () => {
-    expect(await detail(ids.admin, "00000000-0000-0000-0000-000000000000")).toBeNull();
-    await expect(detail(ids.owner, ids.other)).rejects.toThrow(/forbidden/);
-    await expect(detail(null, ids.owner)).rejects.toThrow(/permission denied/);
+    expect(await summary(ids.admin, "00000000-0000-0000-0000-000000000000")).toBeNull();
+    await expect(summary(ids.owner, ids.other)).rejects.toThrow(/forbidden/);
+    await expect(summary(null, ids.owner)).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe("admin_view_user(): the full view only with the user's permission, always logged", () => {
+  const view = (userId: string | null, target: string) =>
+    db.as(userId, async (s) => {
+      const { rows } = await s.query<{ result: Record<string, unknown> }>("select admin_view_user($1) as result", [target]);
+      return rows[0].result;
+    });
+  const auditRows = () =>
+    db.asService<{ action: string; actor_id: string; target_user_id: string }>(
+      "select action, actor_id, target_user_id from audit_log where action = 'user.view_with_permission'",
+    ).then((result) => result.rows);
+
+  it("is refused while the user's support-access switch is off, and nothing is logged", async () => {
+    await expect(view(ids.support, ids.owner)).rejects.toThrow(/no_permission/);
+    expect(await auditRows()).toEqual([]);
+  });
+
+  it("shows the full profile while the switch is on, and writes an audit row first", async () => {
+    await db.as(ids.owner, (s) =>
+      s.query("update profiles set support_access_until = now() + interval '7 days' where id = $1", [ids.owner]),
+    );
+    const result = await view(ids.support, ids.owner);
+    expect(result).toMatchObject({
+      profile: { id: ids.owner, full_name: "Kamala Perera" },
+      email: "kamala@example.com",
+      phone: "+94771234567",
+      shops: [{ name: "Kamala Stores" }],
+    });
+    // Still no money.
+    expect(JSON.stringify(result)).not.toMatch(/amount|cents|2500000/);
+    expect(await auditRows()).toEqual([
+      { action: "user.view_with_permission", actor_id: ids.support, target_user_id: ids.owner },
+    ]);
+  });
+
+  it("the user sees when their account was viewed (time only, never who or why)", async () => {
+    const log = await db.as(ids.owner, async (s) => (await s.query("select * from my_access_log()")).rows);
+    expect(log).toHaveLength(1);
+    expect(Object.keys(log[0] as object)).toEqual(["viewed_at"]);
+    // Another user's log is empty.
+    expect(await db.as(ids.other, async (s) => (await s.query("select * from my_access_log()")).rows)).toEqual([]);
+  });
+
+  it("stops working when the switch is turned off again or has run out", async () => {
+    await db.as(ids.owner, (s) =>
+      s.query("update profiles set support_access_until = null where id = $1", [ids.owner]),
+    );
+    await expect(view(ids.admin, ids.owner)).rejects.toThrow(/no_permission/);
+    await db.asService("update profiles set support_access_until = now() - interval '1 minute' where id = $1", [ids.owner]);
+    await expect(view(ids.admin, ids.owner)).rejects.toThrow(/no_permission/);
+    await db.asService("update profiles set support_access_until = null where id = $1", [ids.owner]);
+  });
+
+  it("refuses ordinary users, blocked users and guests", async () => {
+    await expect(view(ids.owner, ids.other)).rejects.toThrow(/forbidden/);
+    await expect(view(ids.blocked, ids.owner)).rejects.toThrow(/forbidden/);
+    await expect(view(null, ids.owner)).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe("Support and Admin read nothing directly (Part B4)", () => {
+  it("cannot select other people's profiles, shops or memberships", async () => {
+    for (const who of [ids.admin, ids.support]) {
+      expect(await db.as(who, (s) => count(s, "select 1 from profiles where id <> $1", [who]))).toBe(0);
+      expect(await db.as(who, (s) => count(s, "select 1 from businesses"))).toBe(0);
+      expect(await db.as(who, (s) => count(s, "select 1 from business_members where user_id <> $1", [who]))).toBe(0);
+    }
+  });
+
+  it("everyone still reads their own profile, shop and membership", async () => {
+    expect(await db.as(ids.owner, (s) => count(s, "select 1 from profiles where id = $1", [ids.owner]))).toBe(1);
+    expect(await db.as(ids.owner, (s) => count(s, "select 1 from businesses"))).toBe(1);
+    expect(await db.as(ids.owner, (s) => count(s, "select 1 from business_members"))).toBe(1);
   });
 });
 
@@ -319,7 +411,7 @@ describe("Audit log (Part B3: every admin action is logged)", () => {
       ids.blocked,
       { email: "blocked@example.com" },
     ]);
-    expect(await db.as(ids.admin, (s) => count(s, "select 1 from audit_log"))).toBe(1);
+    expect(await db.as(ids.admin, (s) => count(s, "select 1 from audit_log where action = 'user.block'"))).toBe(1);
     expect(await db.as(ids.support, (s) => count(s, "select 1 from audit_log"))).toBe(0);
     expect(await db.as(ids.owner, (s) => count(s, "select 1 from audit_log"))).toBe(0);
   });
@@ -352,7 +444,7 @@ describe("Feedback inbox and settings (Part D4)", () => {
   });
 
   it("everyone can read the settings, only the Admin can change them", async () => {
-    expect(await db.as(ids.owner, (s) => count(s, "select 1 from app_settings"))).toBe(5);
+    expect(await db.as(ids.owner, (s) => count(s, "select 1 from app_settings"))).toBe(8);
     expect(await db.as(null, (s) => count(s, "select 1 from app_settings where key = 'maintenance'"))).toBe(1);
 
     const change = (who: string) =>

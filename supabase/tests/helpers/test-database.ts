@@ -1,7 +1,7 @@
 import { PGlite, type Transaction } from "@electric-sql/pglite";
 import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 const HELPERS_DIR = import.meta.dirname;
 const MIGRATIONS_DIR = join(HELPERS_DIR, "..", "..", "migrations");
@@ -19,15 +19,28 @@ export type Session = Transaction;
 export class TestDatabase {
   private constructor(private readonly db: PGlite) {}
 
-  static async create(): Promise<TestDatabase> {
+  /**
+   * `stopBefore` (for example "0007") applies only the migrations before that
+   * one, so a test can fill the database with old-style data first and then
+   * call `migrate()` to prove a migration upgrades it correctly.
+   */
+  static async create(options: { stopBefore?: string } = {}): Promise<TestDatabase> {
     const db = await PGlite.create();
 
     await db.exec(readFileSync(join(HELPERS_DIR, "supabase-stubs.sql"), "utf8"));
     for (const file of TestDatabase.migrationFiles()) {
+      if (options.stopBefore && basename(file) >= options.stopBefore) break;
       await db.exec(readFileSync(file, "utf8"));
     }
 
     return new TestDatabase(db);
+  }
+
+  /** Applies the migrations from `from` on (for example "0007"), after `create({ stopBefore })`. */
+  async migrate(from: string): Promise<void> {
+    for (const file of TestDatabase.migrationFiles()) {
+      if (basename(file) >= from) await this.db.exec(readFileSync(file, "utf8"));
+    }
   }
 
   /** Migrations in the order Supabase applies them (by file name). */

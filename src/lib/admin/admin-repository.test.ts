@@ -58,17 +58,19 @@ describe("AdminRepository.stats", () => {
 
 describe("AdminRepository.listUsers", () => {
   const row = (id: string, total: number) => ({
-    user_id: id, full_name: "Kamala", email: "k@example.com", phone: null, created_at: "2026-11-01T00:00:00Z",
-    last_active_at: null, platform_role: "user", status: "active", plan: "free", entries_count: 3, total_count: total,
+    user_id: id, email_masked: "k***@example.com", phone_masked: null, created_at: "2026-11-01T00:00:00Z",
+    last_active_at: null, platform_role: "user", status: "active", tier: "free", shops_count: 1, entries_count: 3, total_count: total,
   });
 
-  it("maps the rows and takes the total from the first one", async () => {
+  it("maps the masked rows and takes the total from the first one", async () => {
     const { db, calls } = fakeDb({ data: [row("a", 41), row("b", 41)] });
-    const page = await new AdminRepository(db).listUsers({ search: "kam", page: 2, pageSize: 25 });
+    const page = await new AdminRepository(db).listUsers({ search: "k@example.com", page: 2, pageSize: 25 });
 
     expect(page.total).toBe(41);
-    expect(page.users[0]).toMatchObject({ id: "a", fullName: "Kamala", email: "k@example.com", plan: "free", entriesCount: 3 });
-    expect(calls[0]).toEqual({ method: "rpc:admin_users", args: [{ p_search: "kam", p_limit: 25, p_offset: 25 }] });
+    expect(page.users[0]).toMatchObject({ id: "a", emailMasked: "k***@example.com", tier: "free", shopsCount: 1, entriesCount: 3 });
+    expect(page.users[0]).not.toHaveProperty("email");
+    expect(page.users[0]).not.toHaveProperty("fullName");
+    expect(calls[0]).toEqual({ method: "rpc:admin_find_users", args: [{ p_query: "k@example.com", p_limit: 25, p_offset: 25 }] });
   });
 
   it("has a total of 0 for an empty page", async () => {
@@ -76,22 +78,26 @@ describe("AdminRepository.listUsers", () => {
   });
 });
 
-describe("AdminRepository.userDetail", () => {
-  it("maps one user with their shops", async () => {
-    const { db } = fakeDb({
+describe("AdminRepository.userSummary", () => {
+  it("maps one user: masked contact, support-access status and counts", async () => {
+    const { db, calls } = fakeDb({
       data: {
-        id: "u1", full_name: "Kamala", email: "k@example.com", phone: null, created_at: "2026-11-01T00:00:00Z",
-        last_active_at: null, platform_role: "user", status: "active", support_access_until: null,
-        shops: [{ id: "s1", name: "Kamala Stores", plan: "free", role: "owner", entries_count: 142 }],
+        id: "u1", email_masked: "k***@example.com", phone_masked: "+947 *** **67", created_at: "2026-11-01T00:00:00Z",
+        last_active_at: null, platform_role: "user", status: "active", tier: "pro", support_access_until: null,
+        support_access_on: false, shops_count: 1, memberships_count: 2, entries_count: 142,
       },
     });
-    const detail = await new AdminRepository(db).userDetail("u1");
-    expect(detail?.shops).toEqual([{ id: "s1", name: "Kamala Stores", plan: "free", role: "owner", entriesCount: 142 }]);
-    expect(detail?.supportAccessUntil).toBeNull();
+    const summary = await new AdminRepository(db).userSummary("u1");
+    expect(summary).toMatchObject({
+      id: "u1", emailMasked: "k***@example.com", phoneMasked: "+947 *** **67", tier: "pro",
+      supportAccessOn: false, shopsCount: 1, membershipsCount: 2, entriesCount: 142,
+    });
+    expect(summary?.supportAccessUntil).toBeNull();
+    expect(calls[0]).toEqual({ method: "rpc:admin_user_summary", args: [{ p_user_id: "u1" }] });
   });
 
   it("is null for an unknown user", async () => {
-    expect(await new AdminRepository(fakeDb({ data: null }).db).userDetail("x")).toBeNull();
+    expect(await new AdminRepository(fakeDb({ data: null }).db).userSummary("x")).toBeNull();
   });
 });
 

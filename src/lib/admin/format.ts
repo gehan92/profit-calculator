@@ -39,6 +39,11 @@ export function formatWeekdayDayMonth(day: string): string {
 }
 
 /** "1,240" for a count. */
+/** "free" → "Free", "pro" → "Pro", "business" → "Business". */
+export function tierLabel(tier: string): string {
+  return tier === "pro" ? "Pro" : tier === "business" ? "Business" : "Free";
+}
+
 export function formatCount(value: number): string {
   return value.toLocaleString("en-US");
 }

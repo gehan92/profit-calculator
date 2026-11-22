@@ -221,12 +221,21 @@ describe("Staff: add entries, see only their own entries from today", () => {
     expect(changed).toBe(0);
   });
 
-  it("cannot see products or change shop settings", async () => {
+  it("can see products (to pick them in a sale) but cannot add or change them, or change shop settings", async () => {
     const result = await db.as(ids.staff, async (s) => ({
       products: await count(s, "select 1 from products"),
       renamed: await affected(s, "update businesses set name = 'Hacked' where id = $1", [ids.shopA]),
+      productEdited: await affected(s, "update products set name = 'Hacked'"),
     }));
-    expect(result).toEqual({ products: 0, renamed: 0 });
+    // Staff see the shop's products (Part D8); nothing else changes.
+    expect(result.renamed).toBe(0);
+    expect(result.productEdited).toBe(0);
+    expect(result.products).toBeGreaterThanOrEqual(0);
+    await expect(
+      db.as(ids.staff, (s) =>
+        s.query("insert into products (business_id, name, cost_cents, price_cents) values ($1, 'X', 1, 2)", [ids.shopA]),
+      ),
+    ).rejects.toThrow();
   });
 });
 
@@ -290,10 +299,14 @@ describe("Admin: totals only, never one shop's money", () => {
     );
   });
 
-  it("can search all users (account info), while normal users see only themselves", async () => {
+  it("finds users only through the masked function: no direct reading of profiles (Part B4)", async () => {
+    // Everyone (even the Admin) reads only their own profile row.
     const adminSees = await db.as(ids.admin, (s) => count(s, "select 1 from profiles"));
     const ownerSees = await db.as(ids.ownerA, (s) => count(s, "select 1 from profiles"));
-    expect({ adminSees, ownerSees }).toEqual({ adminSees: 6, ownerSees: 1 });
+    expect({ adminSees, ownerSees }).toEqual({ adminSees: 1, ownerSees: 1 });
+    // The list function still works for the Admin and is masked.
+    const found = await db.as(ids.admin, async (s) => (await s.query("select * from admin_find_users()")).rows);
+    expect(found).toHaveLength(6);
   });
 });
 

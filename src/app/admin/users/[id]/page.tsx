@@ -3,24 +3,25 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { AdminTable, Badge, EmptyState, PageHeader, Panel, Td, Th } from "@/components/admin/admin-ui";
+import { Badge, EmptyState, PageHeader, Panel } from "@/components/admin/admin-ui";
 import { UserActions } from "@/components/admin/user-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdminPage } from "@/lib/admin/admin-guard";
 import { canAdmin, adminRoutes } from "@/lib/admin/admin-roles";
 import { AdminRepository } from "@/lib/admin/admin-repository";
 import { auditActionLabel, auditSummary, auditWho } from "@/lib/admin/audit-format";
-import { formatAdminDateTime, formatCount } from "@/lib/admin/format";
+import { formatAdminDateTime, formatCount, tierLabel } from "@/lib/admin/format";
+import { userLabel } from "@/lib/admin/mask";
 import { refuseUserAction } from "@/lib/admin/user-rules";
-import { isSupportAccessActive } from "@/lib/account/support-access";
 
 export const metadata: Metadata = { title: "User" };
 
 /**
- * /admin/users/[id] — one user (Part C2 "Admin — User detail"): account info,
- * shops with their role and the number of entries, support-access status,
- * the action buttons and the log of what was done to this user. A shop's
- * records are not shown (Part B3).
+ * /admin/users/[id] — one user (Part C2 "Admin — User detail", Part B4): the
+ * facts an admin may see without permission (masked contact, joined, last
+ * active, status, plan, counts), the support-access status, the action buttons
+ * and the log of what was done to this user. The name, full contact details,
+ * shop names and records are not shown.
  */
 export default function UserDetailPage({ params }: PageProps<"/admin/users/[id]">) {
   return (
@@ -38,14 +39,13 @@ async function UserDetailContent({ params }: Pick<PageProps<"/admin/users/[id]">
   if (!UUID.test(id)) notFound();
 
   const repository = new AdminRepository(supabase);
-  const user = await repository.userDetail(id);
+  const user = await repository.userSummary(id);
   if (!user) notFound();
 
   const history = canAdmin(role, "viewAudit") ? await repository.listAudit({ targetUserId: id, pageSize: 20 }) : null;
 
   const refused = refuseUserAction(actor.id, { id: user.id, platformRole: user.platformRole }) !== null;
-  const supportOn = isSupportAccessActive(user.supportAccessUntil);
-  const title = user.fullName || user.email || "No name";
+  const title = userLabel(user);
 
   return (
     <>
@@ -67,7 +67,7 @@ async function UserDetailContent({ params }: Pick<PageProps<"/admin/users/[id]">
         }
         actions={
           <UserActions
-            user={{ id: user.id, email: user.email, name: title, blocked: user.status === "blocked" }}
+            user={{ id: user.id, hasEmail: user.emailMasked !== null, name: title, blocked: user.status === "blocked" }}
             canManage={canAdmin(role, "manageUsers") && !refused}
             canLoginHelp={canAdmin(role, "sendLoginHelp")}
           />
@@ -77,45 +77,29 @@ async function UserDetailContent({ params }: Pick<PageProps<"/admin/users/[id]">
       <div className="space-y-4">
         <Panel title="Account">
           <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
-            <Fact label="Name" value={user.fullName ?? "—"} />
-            <Fact label="Email" value={user.email ?? "—"} />
-            <Fact label="Phone" value={user.phone ?? "—"} />
+            <Fact label="User ID" value={user.id} />
+            <Fact label="Email" value={user.emailMasked ?? "—"} />
+            <Fact label="Phone" value={user.phoneMasked ?? "—"} />
             <Fact label="Joined" value={formatAdminDateTime(user.createdAt)} />
             <Fact label="Last active" value={formatAdminDateTime(user.lastActiveAt)} />
+            <Fact label="Plan" value={tierLabel(user.tier)} />
             <Fact
               label="Support access"
-              value={supportOn ? `ON until ${formatAdminDateTime(user.supportAccessUntil)}` : "OFF"}
+              value={
+                user.supportAccessOn
+                  ? `ON until ${formatAdminDateTime(user.supportAccessUntil)}`
+                  : "OFF — the profile stays hidden"
+              }
             />
           </dl>
         </Panel>
 
-        <Panel title="Shops" description="Entry counts only. The records themselves are private to the shop.">
-          {user.shops.length === 0 ? (
-            <EmptyState>This user has no shop.</EmptyState>
-          ) : (
-            <AdminTable caption="Shops of this user">
-              <thead>
-                <tr>
-                  <Th>Shop</Th>
-                  <Th>Role</Th>
-                  <Th>Plan</Th>
-                  <Th className="text-right">Entries</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {user.shops.map((shop) => (
-                  <tr key={shop.id}>
-                    <Td className="font-medium">{shop.name}</Td>
-                    <Td className="capitalize">{shop.role}</Td>
-                    <Td>
-                      <Badge tone={shop.plan === "pro" ? "brand" : "neutral"}>{shop.plan === "pro" ? "Pro" : "Free"}</Badge>
-                    </Td>
-                    <Td className="text-right tabular-nums">{formatCount(shop.entriesCount)}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </AdminTable>
-          )}
+        <Panel title="Counts" description="Numbers only. A shop's name and records are private to the shop.">
+          <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+            <Fact label="Shops owned" value={formatCount(user.shopsCount)} />
+            <Fact label="Shops joined as Staff or Viewer" value={formatCount(user.membershipsCount)} />
+            <Fact label="Entries in their shops" value={formatCount(user.entriesCount)} />
+          </dl>
         </Panel>
 
         {history && (

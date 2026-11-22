@@ -374,23 +374,25 @@ export type Database = {
         }[]
       }
       admin_stats: { Args: never; Returns: Json }
-      admin_user_detail: { Args: { p_user_id: string }; Returns: Json }
-      admin_users: {
-        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+      admin_find_users: {
+        Args: { p_limit?: number; p_offset?: number; p_query?: string }
         Returns: {
           created_at: string
-          email: string
+          email_masked: string | null
           entries_count: number
-          full_name: string
-          last_active_at: string
-          phone: string
-          plan: string
+          last_active_at: string | null
+          phone_masked: string | null
           platform_role: Database["public"]["Enums"]["platform_role"]
+          shops_count: number
           status: string
+          tier: string
           total_count: number
           user_id: string
         }[]
       }
+      admin_user_summary: { Args: { p_user_id: string }; Returns: Json }
+      admin_view_user: { Args: { target: string }; Returns: Json }
+      my_access_log: { Args: never; Returns: { viewed_at: string }[] }
       is_active: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_team: { Args: never; Returns: boolean }

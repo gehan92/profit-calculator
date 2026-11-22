@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TypedConfirmDialog } from "@/components/ui/typed-confirm-dialog";
 import { adminRoutes } from "@/lib/admin/admin-roles";
-import { matchesTyped } from "@/lib/admin/user-rules";
 
 interface UserActionsProps {
-  user: { id: string; email: string | null; name: string; blocked: boolean };
+  user: { id: string; hasEmail: boolean; name: string; blocked: boolean };
   /** Block, unblock and delete: Admin only, and never for yourself or another Admin. */
   canManage: boolean;
   /** Login help: Support and Admin. */
@@ -70,8 +69,8 @@ export function UserActions({ user, canManage, canLoginHelp }: UserActionsProps)
     if (await run("unblock", () => unblockUser(user.id), "User unblocked")) router.refresh();
   }
 
-  async function remove() {
-    if (await run("delete", () => deleteUser(user.id, user.email ?? ""), "User deleted")) {
+  async function remove(typedEmail: string) {
+    if (await run("delete", () => deleteUser(user.id, typedEmail), "User deleted")) {
       router.replace(adminRoutes.users);
     } else {
       setConfirmDelete(false);
@@ -85,7 +84,7 @@ export function UserActions({ user, canManage, canLoginHelp }: UserActionsProps)
           type="button"
           variant="outline"
           className="h-11 bg-background"
-          disabled={busy !== null || !user.email}
+          disabled={busy !== null || !user.hasEmail}
           onClick={() => void run("login", () => sendLoginHelp(user.id), "Login link sent")}
         >
           <MailIcon data-icon="inline-start" aria-hidden="true" />
@@ -135,15 +134,15 @@ export function UserActions({ user, canManage, canLoginHelp }: UserActionsProps)
         onOpenChange={setConfirmDelete}
         title={`Delete ${user.name}?`}
         description="Their login, their shops and every record in them are deleted for ever. This cannot be undone."
-        typeLabel={`Type their email: ${user.email ?? "(none)"}`}
-        placeholder={user.email ?? ""}
-        isConfirmed={(typed) => user.email !== null && matchesTyped(typed, user.email)}
+        typeLabel="Type the user's full email address (the one they gave you)"
+        placeholder="name@example.com"
+        isConfirmed={(typed) => typed.trim().includes("@")}
         confirmLabel="Delete everything"
         cancelLabel="Cancel"
         busyLabel="Deleting…"
         busy={busy === "delete"}
         destructive
-        onConfirm={() => void remove()}
+        onConfirm={(typed) => void remove(typed)}
       />
     </div>
   );

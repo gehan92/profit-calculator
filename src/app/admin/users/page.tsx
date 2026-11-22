@@ -7,7 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdminPage } from "@/lib/admin/admin-guard";
 import { adminRoutes } from "@/lib/admin/admin-roles";
 import { AdminRepository, type AdminUserRow } from "@/lib/admin/admin-repository";
-import { formatAdminDate, formatCount } from "@/lib/admin/format";
+import { formatAdminDate, formatCount, tierLabel } from "@/lib/admin/format";
+import { userLabel } from "@/lib/admin/mask";
 import { ADMIN_PAGE_SIZE, parsePage } from "@/lib/admin/paging";
 
 export const metadata: Metadata = { title: "Users" };
@@ -15,9 +16,10 @@ export const metadata: Metadata = { title: "Users" };
 const SEARCH_MAX_LENGTH = 100;
 
 /**
- * /admin/users — search and list users (Part D4 Users): name, contact, joined,
- * last active, plan, entries count, status. Support and Admin. The search text
- * and the page are in the address, so a result can be reopened.
+ * /admin/users — find and list users (Part D4 Users, Part B4): masked contact,
+ * joined, last active, plan, counts, status. Support and Admin. To find one
+ * person, type their exact email, phone or user ID; the full profile needs the
+ * user's own permission. The search text and the page are in the address.
  */
 export default function UsersPage({ searchParams }: PageProps<"/admin/users">) {
   return (
@@ -45,11 +47,14 @@ async function UsersContent({ searchParams }: Pick<PageProps<"/admin/users">, "s
 
   return (
     <>
-      <PageHeader title="Users" description="Account information only. A shop's records are never shown here." />
+      <PageHeader
+        title="Users"
+        description="Contact details are hidden (k***@gmail.com). To find one person, type their exact email, phone or user ID. A shop's records are never shown here."
+      />
 
       <form action={adminRoutes.users} method="get" role="search" className="mb-4 flex flex-wrap gap-2">
         <label htmlFor="user-search" className="sr-only">
-          Search by email, phone or name
+          Find by exact email, phone or user ID
         </label>
         <input
           id="user-search"
@@ -57,7 +62,7 @@ async function UsersContent({ searchParams }: Pick<PageProps<"/admin/users">, "s
           type="search"
           defaultValue={search}
           maxLength={SEARCH_MAX_LENGTH}
-          placeholder="Search by email, phone or name"
+          placeholder="Exact email, phone or user ID"
           className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-4 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 sm:max-w-md"
         />
         <Button type="submit" className="h-11 px-6">
@@ -71,7 +76,7 @@ async function UsersContent({ searchParams }: Pick<PageProps<"/admin/users">, "s
       </form>
 
       {users.length === 0 ? (
-        <EmptyState>{search ? `No users match “${search}”.` : "No users yet."}</EmptyState>
+        <EmptyState>{search ? `No user has exactly “${search}” as email, phone or user ID.` : "No users yet."}</EmptyState>
       ) : (
         <>
           <AdminTable caption="Users">
@@ -81,6 +86,7 @@ async function UsersContent({ searchParams }: Pick<PageProps<"/admin/users">, "s
                 <Th>Joined</Th>
                 <Th>Last active</Th>
                 <Th>Plan</Th>
+                <Th className="text-right">Shops</Th>
                 <Th className="text-right">Entries</Th>
                 <Th>Status</Th>
               </tr>
@@ -106,17 +112,18 @@ function UserRow({ user }: { user: AdminUserRow }) {
           href={`${adminRoutes.users}/${user.id}`}
           className="font-medium text-primary underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
         >
-          {user.fullName || user.email || "No name"}
+          {userLabel(user)}
         </Link>
         <span className="mt-0.5 block text-xs break-all text-muted-foreground">
-          {[user.fullName ? user.email : null, user.phone].filter(Boolean).join(" · ") || "No contact"}
+          {[user.phoneMasked, `ID ${user.id.slice(0, 8)}`].filter(Boolean).join(" · ")}
         </span>
       </Td>
       <Td className="whitespace-nowrap">{formatAdminDate(user.createdAt)}</Td>
       <Td className="whitespace-nowrap">{formatAdminDate(user.lastActiveAt)}</Td>
       <Td>
-        <Badge tone={user.plan === "pro" ? "brand" : "neutral"}>{user.plan === "pro" ? "Pro" : "Free"}</Badge>
+        <Badge tone={user.tier === "free" ? "neutral" : "brand"}>{tierLabel(user.tier)}</Badge>
       </Td>
+      <Td className="text-right tabular-nums">{formatCount(user.shopsCount)}</Td>
       <Td className="text-right tabular-nums">{formatCount(user.entriesCount)}</Td>
       <Td>
         <div className="flex flex-wrap gap-1">
