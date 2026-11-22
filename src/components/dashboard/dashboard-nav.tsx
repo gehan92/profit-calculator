@@ -67,10 +67,13 @@ export function DashboardNav({ role, variant }: DashboardNavProps) {
             const content = (
               <>
                 <Icon aria-hidden="true" className="size-6" />
-                <span className="max-w-full truncate px-1">{t(key)}</span>
+                <span className="max-w-full truncate">{t(key)}</span>
               </>
             );
-            const itemClass = "flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium";
+            // Smaller text on the narrowest phones (320 px): a long Tamil word such as
+            // "அமைப்புகள்" must fit in a quarter of the screen without being cut.
+            const itemClass =
+              "flex min-h-16 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium min-[360px]:text-xs";
 
             return (
               <li key={href}>

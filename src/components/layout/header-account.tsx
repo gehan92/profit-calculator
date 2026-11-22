@@ -15,7 +15,7 @@ export async function HeaderAccount() {
 
   if (user) {
     return (
-      <Button asChild className="h-10 px-4">
+      <Button asChild className="h-10 px-3 sm:px-4">
         <Link href={authRoutes.dashboard}>
           <StoreIcon data-icon="inline-start" aria-hidden="true" />
           {t("myShop")}
@@ -25,7 +25,7 @@ export async function HeaderAccount() {
   }
 
   return (
-    <Button asChild className="h-10 px-4">
+    <Button asChild className="h-10 px-3 sm:px-4">
       <Link href={authRoutes.login}>{t("login")}</Link>
     </Button>
   );

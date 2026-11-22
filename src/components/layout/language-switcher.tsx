@@ -36,7 +36,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
             title={label.full}
             aria-current={isActive ? "true" : undefined}
             className={cn(
-              "flex h-8 min-w-10 items-center justify-center rounded-full px-2.5 text-sm font-medium transition-colors",
+              "flex h-9 min-w-9 items-center justify-center rounded-full px-2 text-sm font-medium transition-colors",
               "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
               isActive
                 ? "bg-primary text-primary-foreground shadow-sm"
