@@ -13,11 +13,16 @@ export function maskEmail(email: string | null | undefined): string | null {
   return `${email.slice(0, 1)}***@${domain}`;
 }
 
-/** `+94771234567` → `+947 *** **67`; very short numbers are hidden completely. */
+/**
+ * `+94771234567` and `94771234567` (how Supabase stores it) → `+947 *** **67`;
+ * numbers with fewer than 7 digits are hidden completely. Same rule as
+ * `mask_phone()` in migration 0008.
+ */
 export function maskPhone(phone: string | null | undefined): string | null {
   if (!phone) return null;
-  if (phone.length < 8) return "*** **";
-  return `${phone.slice(0, 4)} *** **${phone.slice(-2)}`;
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 7) return "*** **";
+  return `+${digits.slice(0, 3)} *** **${digits.slice(-2)}`;
 }
 
 /** A short, safe label for a user whose name and email are hidden: `User 7f3a91c2`. */

@@ -162,13 +162,21 @@ function SavePrompt({ count }: { count: number }) {
         {t("savePromptTitle")}
       </h2>
       <p className="mt-2 text-pretty text-primary-foreground/85">{t("savePromptBody", { count })}</p>
-      <Button
-        asChild
-        variant="secondary"
-        className="mt-4 h-auto min-h-12 w-full py-2 text-center leading-tight whitespace-normal sm:w-auto"
-      >
-        <Link href={authRoutes.login}>{t("savePromptCta")}</Link>
-      </Button>
+      <div className="mt-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+        <Button
+          asChild
+          variant="secondary"
+          className="h-auto min-h-12 w-full py-2 text-center leading-tight whitespace-normal sm:w-auto"
+        >
+          <Link href={authRoutes.signup}>{t("savePromptCta")}</Link>
+        </Button>
+        <Link
+          href={authRoutes.login}
+          className="inline-flex min-h-11 items-center justify-center text-sm font-medium text-primary-foreground underline underline-offset-4"
+        >
+          {t("savePromptLogin")}
+        </Link>
+      </div>
     </section>
   );
 }

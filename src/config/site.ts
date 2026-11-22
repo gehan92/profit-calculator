@@ -34,6 +34,7 @@ export const publicRoutes = {
   home: "/",
   tryMyBusiness: "/try",
   login: "/login",
+  signup: "/signup",
   about: "/about",
   privacy: "/privacy",
   terms: "/terms",

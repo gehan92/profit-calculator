@@ -23,8 +23,14 @@ describe("maskPhone", () => {
     expect(maskPhone("+94771234567")).toBe("+947 *** **67");
   });
 
+  it("gives the same result with or without the +, and ignores spaces", () => {
+    expect(maskPhone("94771234567")).toBe("+947 *** **67");
+    expect(maskPhone("+94 77 123 4567")).toBe("+947 *** **67");
+  });
+
   it("hides a very short number completely", () => {
     expect(maskPhone("12345")).toBe("*** **");
+    expect(maskPhone("123456")).toBe("*** **");
   });
 
   it("returns null when there is no phone", () => {

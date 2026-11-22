@@ -7,7 +7,13 @@ import { useState, type FormEvent } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { authRoutes, dashboardPath, safeNextPath } from "@/lib/auth/routes";
+import {
+  authRoutes,
+  dashboardPath,
+  FROM_SIGNUP_PARAM,
+  FROM_SIGNUP_VALUE,
+  safeNextPath,
+} from "@/lib/auth/routes";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -22,14 +28,18 @@ const emailSchema = z.email();
 const WRAPPING_BUTTON = "h-auto min-h-12 w-full py-2 text-center leading-tight whitespace-normal";
 
 /**
- * Login (Part C2 "Other screens", Part D2): Continue with Google, or a login
- * link by email (the backup method). Phone OTP comes once an SMS provider is
- * chosen.
+ * The buttons of the Log in and Create free account pages (Part C1.7): both
+ * use the same passwordless methods, so this is one form with two sets of
+ * words. Continue with Google, or a link by email (the backup method). Phone
+ * codes come once an SMS provider is chosen.
  *
- * Both methods come back through /auth/callback, which creates the first shop.
+ * Both methods come back through /auth/callback, which creates the first
+ * shop. Someone who uses Log in without an account gets one; someone who uses
+ * Create free account but already has one is simply logged in (no dead ends).
  */
-export function LoginForm() {
+export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const t = useTranslations("login");
+  const tSignup = useTranslations("signup");
   const locale = useLocale();
   const searchParams = useSearchParams();
   const next = safeNextPath(searchParams.get("next"), dashboardPath(locale));
@@ -45,6 +55,7 @@ export function LoginForm() {
   function callbackUrl(): string {
     const url = new URL(authRoutes.callback, window.location.origin);
     url.searchParams.set("next", next);
+    if (mode === "signup") url.searchParams.set(FROM_SIGNUP_PARAM, FROM_SIGNUP_VALUE);
     return url.toString();
   }
 
@@ -91,7 +102,11 @@ export function LoginForm() {
       <div className="space-y-4 rounded-xl bg-accent p-5 text-center" role="status">
         <MailCheckIcon aria-hidden="true" className="mx-auto size-10 text-primary" />
         <h2 className="text-lg font-semibold">{t("sentTitle")}</h2>
-        <p className="text-pretty">{t("sentBody", { email: emailState.email })}</p>
+        <p className="text-pretty">
+          {mode === "signup"
+            ? tSignup("sentBody", { email: emailState.email })
+            : t("sentBody", { email: emailState.email })}
+        </p>
         <p className="text-sm text-muted-foreground">{t("sentSpam")}</p>
         <Button variant="ghost" onClick={() => setEmailState({ step: "typing" })}>
           {t("useOtherEmail")}
@@ -150,7 +165,7 @@ export function LoginForm() {
         />
         <Button type="submit" className={WRAPPING_BUTTON} disabled={sending}>
           <MailIcon data-icon="inline-start" aria-hidden="true" />
-          {sending ? t("sending") : t("emailButton")}
+          {sending ? t("sending") : mode === "signup" ? tSignup("emailButton") : t("emailButton")}
         </Button>
       </form>
     </div>

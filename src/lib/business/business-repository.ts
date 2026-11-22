@@ -1,11 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppLocale } from "@/i18n/config";
+import type { BusinessType } from "@/lib/business/business-types";
 import type { CurrencyCode } from "@/lib/money";
 import type { MemberRole } from "@/lib/roles";
 import type { Database, Tables } from "@/lib/supabase/types";
 
 /** The shop fields pages need. */
-export type Business = Pick<Tables<"businesses">, "id" | "name" | "currency" | "locale" | "plan">;
+export type Business = Pick<
+  Tables<"businesses">,
+  "id" | "name" | "currency" | "locale" | "plan" | "business_type"
+>;
 
 export interface Membership {
   business: Business;
@@ -20,13 +24,18 @@ export class BusinessQueryError extends Error {
   }
 }
 
-const BUSINESS_COLUMNS = "id, name, currency, locale, plan" as const;
+const BUSINESS_COLUMNS = "id, name, currency, locale, plan, business_type" as const;
 
 /** What the Settings screen changes about a shop (Part D2 Settings). */
 export interface ShopSettings {
   name: string;
   currency: CurrencyCode;
   locale: AppLocale;
+}
+
+/** What first-time shop setup saves (Part C1.7 "Set up your shop"). */
+export interface ShopSetup extends ShopSettings {
+  businessType: BusinessType;
 }
 
 /** Shop names are 1–60 characters (Part D2 Settings; database check). */
@@ -100,18 +109,26 @@ export class BusinessRepository {
     }
   }
 
-  /** Renames a shop. RLS allows this only for its Owner. */
-  async rename(businessId: string, name: string): Promise<void> {
+  /**
+   * First-time shop setup (Part C1.7): name, business type, currency and
+   * language. Choosing a business type makes the database add that type's
+   * default categories (migration 0007). RLS allows this only for the Owner.
+   */
+  async completeSetup(businessId: string, setup: ShopSetup): Promise<void> {
     const { data, error } = await this.db
       .from("businesses")
-      .update({ name })
+      .update({
+        name: setup.name,
+        currency: setup.currency,
+        locale: setup.locale,
+        business_type: setup.businessType,
+      })
       .eq("id", businessId)
       .select("id");
 
-    if (error) throw new BusinessQueryError("rename the shop", error);
-    // RLS hides rows instead of failing, so "0 rows changed" means "not allowed".
+    if (error) throw new BusinessQueryError("save the shop setup", error);
     if (data.length === 0) {
-      throw new BusinessQueryError("rename the shop", { message: "not the owner" });
+      throw new BusinessQueryError("save the shop setup", { message: "not the owner" });
     }
   }
 }

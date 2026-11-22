@@ -15,12 +15,13 @@
     "calculators": "Calculators",
     "tryMyBusiness": "My Business (try)",
     "login": "Log in",
-    "myShop": "My shop"
+    "myShop": "My shop",
+    "signup": "Create free account"
   },
   "login": {
     "metaTitle": "Log in",
-    "title": "Log in or create your account",
-    "subtitle": "Free. Keep your daily sales and costs safe, on any phone.",
+    "title": "Welcome back",
+    "subtitle": "Log in to see your shop.",
     "google": "Continue with Google",
     "googleOpening": "Opening Google…",
     "or": "or",
@@ -38,20 +39,11 @@
     "callbackError": "We couldn't log you in. Please try again.",
     "privacy": "Your records are private. No ads inside your records.",
     "agree": "By continuing you agree to our <terms>Terms</terms> and <privacy>Privacy Policy</privacy>.",
-    "newHere": "New here? Just continue. We create your account for you. No password needed."
+    "newHere": "New here? <link>Create free account</link>"
   },
   "dashboard": {
     "metaTitle": "My shop",
     "defaultShopName": "My Shop",
-    "shopNameTitle": "What is your shop called?",
-    "shopNameHint": "You can change it later.",
-    "shopNameLabel": "Shop name",
-    "save": "Save",
-    "saving": "Saving…",
-    "skip": "Skip",
-    "nameRequired": "Please type a shop name.",
-    "nameTooLong": "Use 60 letters or fewer.",
-    "saveFailed": "Could not save. Please try again.",
     "calculatorsTitle": "Free calculators",
     "calculatorsBody": "Work out profit, margin, prices and break-even any time.",
     "openCalculators": "Open the calculators"
@@ -66,7 +58,8 @@
     "myEntries": "My entries",
     "entries": "Entries",
     "soon": "Soon",
-    "noAccess": "You don't have access to that page."
+    "noAccess": "You don't have access to that page.",
+    "welcomeBack": "Welcome back! You already had an account, so we logged you in."
   },
   "account": {
     "menu": "Account menu",
@@ -319,9 +312,10 @@
     "banner": "Saved on this phone only — log in to keep it safe",
     "bannerCta": "Log in",
     "savePromptTitle": "Save your records forever — free",
-    "savePromptBody": "Log in and your {count} records move to your account. Then they are safe, even if you lose this phone.",
-    "savePromptCta": "Log in free",
-    "full": "This phone already holds {max} records, the most it can keep. Log in to keep adding."
+    "savePromptBody": "Create your free account and your {count} records move to it. Then they are safe, even if you lose this phone.",
+    "savePromptCta": "Create free account",
+    "full": "This phone already holds {max} records, the most it can keep. Log in to keep adding.",
+    "savePromptLogin": "Already have an account? Log in"
   },
   "guestImport": {
     "title": "Move {count, plural, one {# record} other {# records}} to your account?",
@@ -351,10 +345,11 @@
     "toolsSubtitle": "Results update as you type. Share them on WhatsApp.",
     "saveTitle": "Save your daily records?",
     "saveBody": "Add sales and costs each evening and see your profit for the whole month.",
-    "saveCta": "Start",
     "trustPrivate": "Your records are private",
     "trustNoAds": "No ads inside your records",
-    "trustLanguages": "English, සිංහල and தமிழ்"
+    "trustLanguages": "English, සිංහල and தமிழ்",
+    "saveTry": "or try it without an account",
+    "saveLogin": "Log in"
   },
   "calc": {
     "profit": {
@@ -811,5 +806,45 @@
         ]
       }
     ]
+  },
+  "signup": {
+    "metaTitle": "Create free account",
+    "title": "Create your free account",
+    "subtitle": "Save your records safely. Free.",
+    "emailButton": "Email me a link to create my account",
+    "sentBody": "We sent a link to {email}. Open it on this phone to finish creating your account.",
+    "haveAccount": "Already have an account? <link>Log in</link>"
+  },
+  "welcome": {
+    "metaTitle": "Set up your shop",
+    "title": "Set up your shop",
+    "subtitle": "Four quick answers. You can change them later in Settings.",
+    "shopNamePlaceholder": "e.g. Kamala Stores",
+    "businessTypeLegend": "What kind of business is it?",
+    "types": {
+      "shop": {
+        "label": "Shop",
+        "hint": "Sell things you buy"
+      },
+      "home": {
+        "label": "Home business",
+        "hint": "Food or goods made at home"
+      },
+      "transport": {
+        "label": "Driver / transport",
+        "hint": "Tuk-tuk, van, bus, lorry"
+      },
+      "service": {
+        "label": "Service",
+        "hint": "Salon, repairs, tuition…"
+      },
+      "other": {
+        "label": "Other",
+        "hint": "Anything else"
+      }
+    },
+    "start": "Start",
+    "starting": "Starting…",
+    "skip": "Skip for now"
   }
 }

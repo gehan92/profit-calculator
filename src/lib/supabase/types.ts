@@ -121,6 +121,7 @@ export type Database = {
       }
       businesses: {
         Row: {
+          business_type: string | null
           created_at: string
           currency: string
           id: string
@@ -130,6 +131,7 @@ export type Database = {
           plan: string
         }
         Insert: {
+          business_type?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -139,6 +141,7 @@ export type Database = {
           plan?: string
         }
         Update: {
+          business_type?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -148,6 +151,59 @@ export type Database = {
           plan?: string
         }
         Relationships: []
+      }
+      categories: {
+        Row: {
+          archived: boolean
+          business_id: string | null
+          business_types: string[] | null
+          color: string
+          counts_as: string
+          created_at: string
+          icon: string
+          id: string
+          key: string | null
+          name: string | null
+          sort: number
+          type: string
+        }
+        Insert: {
+          archived?: boolean
+          business_id?: string | null
+          business_types?: string[] | null
+          color?: string
+          counts_as?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          key?: string | null
+          name?: string | null
+          sort?: number
+          type: string
+        }
+        Update: {
+          archived?: boolean
+          business_id?: string | null
+          business_types?: string[] | null
+          color?: string
+          counts_as?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          key?: string | null
+          name?: string | null
+          sort?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content: {
         Row: {
@@ -179,41 +235,83 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          active: boolean
+          amount_off_cents: number | null
+          code: string
+          currency: string | null
+          max_uses: number | null
+          percent_off: number | null
+          used: number
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          amount_off_cents?: number | null
+          code: string
+          currency?: string | null
+          max_uses?: number | null
+          percent_off?: number | null
+          used?: number
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          amount_off_cents?: number | null
+          code?: string
+          currency?: string | null
+          max_uses?: number | null
+          percent_off?: number | null
+          used?: number
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       entries: {
         Row: {
           amount_cents: number
           business_id: string
-          category: string
+          category: string | null
+          category_id: string | null
           client_id: string | null
           created_at: string
           created_by: string | null
           entry_date: string
           id: string
           note: string | null
+          product_id: string | null
+          quantity: number | null
           type: Database["public"]["Enums"]["entry_type"]
         }
         Insert: {
           amount_cents: number
           business_id: string
-          category: string
+          category?: string | null
+          category_id?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
           entry_date: string
           id?: string
           note?: string | null
+          product_id?: string | null
+          quantity?: number | null
           type: Database["public"]["Enums"]["entry_type"]
         }
         Update: {
           amount_cents?: number
           business_id?: string
-          category?: string
+          category?: string | null
+          category_id?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
           entry_date?: string
           id?: string
           note?: string | null
+          product_id?: string | null
+          quantity?: number | null
           type?: Database["public"]["Enums"]["entry_type"]
         }
         Relationships: [
@@ -223,6 +321,130 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entries_product_fk"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entry_history: {
+        Row: {
+          action: string
+          business_id: string
+          changed_at: string
+          changed_by: string | null
+          entry_id: string
+          id: number
+          old_row: Json
+        }
+        Insert: {
+          action: string
+          business_id: string
+          changed_at?: string
+          changed_by?: string | null
+          entry_id: string
+          id?: never
+          old_row: Json
+        }
+        Update: {
+          action?: string
+          business_id?: string
+          changed_at?: string
+          changed_by?: string | null
+          entry_id?: string
+          id?: never
+          old_row?: Json
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          always_on: boolean
+          category: string
+          countries: string[] | null
+          description: string | null
+          key: string
+          locales: string[] | null
+          locked_free: boolean
+          min_plan: string
+          name: string
+          roles: string[] | null
+          rollout_percent: number
+          status: string
+          updated_at: string
+          updated_by: string | null
+          whats_new: string | null
+        }
+        Insert: {
+          always_on?: boolean
+          category?: string
+          countries?: string[] | null
+          description?: string | null
+          key: string
+          locales?: string[] | null
+          locked_free?: boolean
+          min_plan?: string
+          name: string
+          roles?: string[] | null
+          rollout_percent?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          whats_new?: string | null
+        }
+        Update: {
+          always_on?: boolean
+          category?: string
+          countries?: string[] | null
+          description?: string | null
+          key?: string
+          locales?: string[] | null
+          locked_free?: boolean
+          min_plan?: string
+          name?: string
+          roles?: string[] | null
+          rollout_percent?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          whats_new?: string | null
+        }
+        Relationships: []
+      }
+      feature_overrides: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          user_id: string
+        }
+        Insert: {
+          enabled: boolean
+          feature_key: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_overrides_feature_key_fkey"
+            columns: ["feature_key"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["key"]
           },
         ]
       }
@@ -294,30 +516,152 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          gateway: string
+          gateway_payment_id: string
+          id: string
+          invoice_url: string | null
+          status: string
+          subscription_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency: string
+          gateway: string
+          gateway_payment_id: string
+          id?: string
+          invoice_url?: string | null
+          status: string
+          subscription_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          gateway?: string
+          gateway_payment_id?: string
+          id?: string
+          invoice_url?: string | null
+          status?: string
+          subscription_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          active: boolean
+          available_until: string | null
+          billing_interval: string | null
+          code: string
+          features: Json
+          is_founding: boolean
+          max_subscribers: number | null
+          name: string
+          payment_mode: string
+          period_months: number
+          prices: Json
+          public: boolean
+          sort: number
+          tier: string
+          trial_days: number
+        }
+        Insert: {
+          active?: boolean
+          available_until?: string | null
+          billing_interval?: string | null
+          code: string
+          features?: Json
+          is_founding?: boolean
+          max_subscribers?: number | null
+          name: string
+          payment_mode?: string
+          period_months?: number
+          prices?: Json
+          public?: boolean
+          sort?: number
+          tier?: string
+          trial_days?: number
+        }
+        Update: {
+          active?: boolean
+          available_until?: string | null
+          billing_interval?: string | null
+          code?: string
+          features?: Json
+          is_founding?: boolean
+          max_subscribers?: number | null
+          name?: string
+          payment_mode?: string
+          period_months?: number
+          prices?: Json
+          public?: boolean
+          sort?: number
+          tier?: string
+          trial_days?: number
+        }
+        Relationships: []
+      }
       products: {
         Row: {
+          archived: boolean
+          barcode: string | null
           business_id: string
+          category_id: string | null
+          company_name: string | null
           cost_cents: number
           created_at: string
           id: string
+          kind: string
           name: string
+          notes: string | null
           price_cents: number
+          unit: string
         }
         Insert: {
+          archived?: boolean
+          barcode?: string | null
           business_id: string
+          category_id?: string | null
+          company_name?: string | null
           cost_cents: number
           created_at?: string
           id?: string
+          kind?: string
           name: string
+          notes?: string | null
           price_cents: number
+          unit?: string
         }
         Update: {
+          archived?: boolean
+          barcode?: string | null
           business_id?: string
+          category_id?: string | null
+          company_name?: string | null
           cost_cents?: number
           created_at?: string
           id?: string
+          kind?: string
           name?: string
+          notes?: string | null
           price_cents?: number
+          unit?: string
         }
         Relationships: [
           {
@@ -327,35 +671,143 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           full_name: string | null
           id: string
           last_active_at: string | null
+          locale: string | null
           platform_role: Database["public"]["Enums"]["platform_role"]
           status: string
           support_access_until: string | null
+          text_size: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           full_name?: string | null
           id: string
           last_active_at?: string | null
+          locale?: string | null
           platform_role?: Database["public"]["Enums"]["platform_role"]
           status?: string
           support_access_until?: string | null
+          text_size?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
           last_active_at?: string | null
+          locale?: string | null
           platform_role?: Database["public"]["Enums"]["platform_role"]
           status?: string
           support_access_until?: string | null
+          text_size?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount_cents: number
+          cancel_at_period_end: boolean
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          gateway: string
+          gateway_subscription_id: string | null
+          id: string
+          is_founding: boolean
+          plan_code: string
+          price_locked_until: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number
+          cancel_at_period_end?: boolean
+          created_at?: string
+          currency: string
+          current_period_end?: string | null
+          gateway: string
+          gateway_subscription_id?: string | null
+          id?: string
+          is_founding?: boolean
+          plan_code: string
+          price_locked_until?: string | null
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          cancel_at_period_end?: boolean
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          gateway?: string
+          gateway_subscription_id?: string | null
+          id?: string
+          is_founding?: boolean
+          plan_code?: string
+          price_locked_until?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      webhook_events: {
+        Row: {
+          error: string | null
+          event_id: string
+          event_type: string | null
+          gateway: string
+          id: number
+          payload: Json
+          processed_at: string | null
+          received_at: string
+        }
+        Insert: {
+          error?: string | null
+          event_id: string
+          event_type?: string | null
+          gateway: string
+          id?: never
+          payload: Json
+          processed_at?: string | null
+          received_at?: string
+        }
+        Update: {
+          error?: string | null
+          event_id?: string
+          event_type?: string | null
+          gateway?: string
+          id?: never
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
         }
         Relationships: []
       }
@@ -373,15 +825,14 @@ export type Database = {
           signups: number
         }[]
       }
-      admin_stats: { Args: never; Returns: Json }
       admin_find_users: {
         Args: { p_limit?: number; p_offset?: number; p_query?: string }
         Returns: {
           created_at: string
-          email_masked: string | null
+          email_masked: string
           entries_count: number
-          last_active_at: string | null
-          phone_masked: string | null
+          last_active_at: string
+          phone_masked: string
           platform_role: Database["public"]["Enums"]["platform_role"]
           shops_count: number
           status: string
@@ -390,17 +841,40 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_stats: { Args: never; Returns: Json }
       admin_user_summary: { Args: { p_user_id: string }; Returns: Json }
       admin_view_user: { Args: { target: string }; Returns: Json }
-      my_access_log: { Args: never; Returns: { viewed_at: string }[] }
+      feature_enabled: {
+        Args: { p_key: string; uid?: string }
+        Returns: boolean
+      }
       is_active: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      is_pro: { Args: { uid?: string }; Returns: boolean }
       is_team: { Args: never; Returns: boolean }
+      mask_phone: { Args: { p_phone: string }; Returns: string }
+      my_access_log: {
+        Args: never
+        Returns: {
+          viewed_at: string
+        }[]
+      }
+      my_company_names: { Args: { b: string }; Returns: string[] }
+      my_features: { Args: never; Returns: string[] }
       my_role: {
         Args: { b: string }
         Returns: Database["public"]["Enums"]["member_role"]
       }
+      plan_available: { Args: { p_code: string }; Returns: boolean }
+      plan_spots_left: { Args: { p_code: string }; Returns: number }
+      purge_old_entry_history: { Args: never; Returns: number }
+      restore_entry_from_history: {
+        Args: { p_history_id: number }
+        Returns: string
+      }
+      seed_business_categories: { Args: { b: string }; Returns: undefined }
       touch_last_active: { Args: never; Returns: undefined }
+      user_tier: { Args: { uid?: string }; Returns: string }
     }
     Enums: {
       entry_type: "income" | "expense"

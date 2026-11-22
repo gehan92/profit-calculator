@@ -7,6 +7,10 @@ import { DEFAULT_LOCALE, isAppLocale, type AppLocale } from "@/i18n/config";
  */
 export const authRoutes = {
   login: "/login",
+  /** "Create free account" (Part C1.7): its own page, next to Log in. */
+  signup: "/signup",
+  /** First-time shop setup, shown once after the first login (Part C1.7). */
+  welcome: "/welcome",
   dashboard: "/dashboard",
   /** Guest "My Business (try)"; logged-in people use the dashboard instead. */
   tryMyBusiness: publicRoutes.tryMyBusiness,
@@ -15,7 +19,7 @@ export const authRoutes = {
 } as const;
 
 /** Pages that need a logged-in user. Everyone else sees them only after logging in. */
-const PROTECTED_PREFIXES = [authRoutes.dashboard] as const;
+const PROTECTED_PREFIXES = [authRoutes.dashboard, authRoutes.welcome] as const;
 
 /** "/si/dashboard/add" → { locale: "si", path: "/dashboard/add" }; "/about" → { locale: null, path: "/about" }. */
 export function splitLocale(pathname: string): { locale: AppLocale | null; path: string } {
@@ -44,6 +48,16 @@ export const ADMIN_HIDDEN_PATH = `/${DEFAULT_LOCALE}/page-not-found`;
 /** True for the login page itself. */
 export function isLoginPath(path: string): boolean {
   return path === authRoutes.login;
+}
+
+/** True for the Create free account page. */
+export function isSignupPath(path: string): boolean {
+  return path === authRoutes.signup;
+}
+
+/** True for Log in and Create free account: logged-in people never see either. */
+export function isEntryPath(path: string): boolean {
+  return isLoginPath(path) || isSignupPath(path);
 }
 
 /** True for guest My Business, which sends logged-in people to their dashboard (Part F2 routes). */
@@ -84,4 +98,54 @@ export function pausedPath(locale: AppLocale = DEFAULT_LOCALE): string {
 export function loginPath(locale: AppLocale, next?: string): string {
   const base = `/${locale}${authRoutes.login}`;
   return next ? `${base}?next=${encodeURIComponent(next)}` : base;
+}
+
+/** The Create free account page in one language, keeping where the person wanted to go. */
+export function signupPath(locale: AppLocale, next?: string): string {
+  const base = `/${locale}${authRoutes.signup}`;
+  return next ? `${base}?next=${encodeURIComponent(next)}` : base;
+}
+
+/** How the person logged in the first time; used for the `signup` analytics event (Part F4.6). */
+export type SignupMethod = "google" | "email";
+
+/** The shop setup page in one language; `method` says how the account was made. */
+export function welcomePath(locale: AppLocale, method?: SignupMethod): string {
+  const base = `/${locale}${authRoutes.welcome}`;
+  return method ? `${base}?method=${method}` : base;
+}
+
+/** Query flag that makes the dashboard say "Welcome back" (Create account used by someone who already had one). */
+export const WELCOME_BACK_PARAM = "back";
+
+/**
+ * Added to the /auth/callback address by the Create free account page, so the
+ * callback knows which page the person used (`?from=signup`).
+ */
+export const FROM_SIGNUP_PARAM = "from";
+export const FROM_SIGNUP_VALUE = "signup";
+
+/**
+ * Where /auth/callback sends someone who just logged in (Part C1.7, "No dead ends"):
+ * - a brand-new account goes to shop setup, whichever page they used;
+ * - someone who used Create free account but already had an account is simply
+ *   logged in, with a "Welcome back" message;
+ * - everyone else goes where they were going.
+ */
+export function afterLoginPath(options: {
+  /** True when this login created the account's first shop. */
+  created: boolean;
+  /** True when the person came from the Create free account page. */
+  fromSignup: boolean;
+  locale: AppLocale;
+  method: SignupMethod;
+  /** Already checked with `safeNextPath`. */
+  next: string;
+}): string {
+  if (options.created) return welcomePath(options.locale, options.method);
+  if (!options.fromSignup) return options.next;
+
+  const url = new URL(options.next, "https://placeholder.invalid");
+  url.searchParams.set(WELCOME_BACK_PARAM, "1");
+  return `${url.pathname}${url.search}`;
 }

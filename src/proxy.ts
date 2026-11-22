@@ -8,7 +8,7 @@ import {
   ADMIN_HIDDEN_PATH,
   dashboardPath,
   isAdminPath,
-  isLoginPath,
+  isEntryPath,
   isProtectedPath,
   isTryPath,
   loginPath,
@@ -22,9 +22,9 @@ import { copySessionTo, refreshSession } from "@/lib/supabase/proxy-session";
  *
  * 1. next-intl picks the language (/en, /si, /ta).
  * 2. Supabase refreshes the login cookie (only when one exists).
- * 3. Guards: logged-out users are sent from /dashboard to /login?next=...,
- *    logged-in users are sent from /login to where they wanted to go and
- *    from /try to their dashboard. Anyone who may not open /admin gets the
+ * 3. Guards: logged-out users are sent from /dashboard (and /welcome) to
+ *    /login?next=..., logged-in users are sent from /login and /signup to
+ *    where they wanted to go and from /try to their dashboard. Anyone who may not open /admin gets the
  *    normal 404 page (the panel's existence is never revealed).
  *
  * Proxy is only the first guard. Pages, Server Actions and database RLS
@@ -55,7 +55,8 @@ export default async function proxy(request: NextRequest) {
     return redirectKeepingSession(request, response, loginPath(pageLocale, wanted));
   }
 
-  if (userId && isLoginPath(path)) {
+  // Log in and Create free account are for people who are not logged in yet.
+  if (userId && isEntryPath(path)) {
     const next = safeNextPath(request.nextUrl.searchParams.get("next"), dashboardPath(pageLocale));
     return redirectKeepingSession(request, response, next);
   }

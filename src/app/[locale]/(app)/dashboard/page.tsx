@@ -9,13 +9,13 @@ import { AddButtons } from "@/components/dashboard/add-buttons";
 import { GuestImportPrompt } from "@/components/dashboard/guest-import-prompt";
 import { NoAccessToast } from "@/components/dashboard/no-access-toast";
 import { OwnerHome } from "@/components/dashboard/owner-home";
-import { ShopNameForm } from "@/components/dashboard/shop-name-form";
-import { SignupTracker } from "@/components/dashboard/signup-tracker";
+import { WelcomeBackToast } from "@/components/dashboard/welcome-back-toast";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { NO_ACCESS_PARAM, requireDashboardPage } from "@/lib/auth/dashboard-access";
+import { WELCOME_BACK_PARAM } from "@/lib/auth/routes";
 import { addDays, utcIsoDate } from "@/lib/dates";
 import { EntryRepository } from "@/lib/entries/entry-repository";
 import { can, dashboardRoutes } from "@/lib/roles";
@@ -62,9 +62,6 @@ async function HomeContent({ params, searchParams }: PageProps<"/[locale]/dashbo
   const { role, business } = membership;
   const query = await searchParams;
 
-  const signupMethod = query.welcome === "google" || query.welcome === "email" ? query.welcome : null;
-  const askShopName = signupMethod !== null && role === "owner";
-
   let ownerHome = null;
   if (can(role, "seeTotals")) {
     const supabase = await createSupabaseServerClient();
@@ -81,10 +78,8 @@ async function HomeContent({ params, searchParams }: PageProps<"/[locale]/dashbo
 
   return (
     <div className="space-y-6">
-      {signupMethod && <SignupTracker method={signupMethod} />}
       {query[NO_ACCESS_PARAM] && <NoAccessToast />}
-
-      {askShopName && <ShopNameForm businessId={business.id} />}
+      {query[WELCOME_BACK_PARAM] && <WelcomeBackToast />}
 
       {/* Records made in guest mode on this phone (Part D2 "Move guest data", Owner). */}
       {can(role, "importGuestEntries") && <GuestImportPrompt />}

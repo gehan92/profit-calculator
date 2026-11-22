@@ -16,7 +16,7 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur supports-backdrop-filter:bg-background/75">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-3 sm:gap-3 sm:px-6">
         <Logo compactOnMobile />
 
         <nav aria-label={t("mainMenu")} className="ml-4 hidden items-center gap-1 md:flex">
@@ -24,8 +24,8 @@ export async function SiteHeader() {
           <HeaderLink href={publicRoutes.tryMyBusiness}>{t("tryMyBusiness")}</HeaderLink>
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
-          <LanguageSwitcher />
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          <LanguageSwitcher compactOnMobile />
           <Suspense fallback={<HeaderAccountSkeleton />}>
             <HeaderAccount />
           </Suspense>

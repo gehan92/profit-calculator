@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]">): Prom
 /** Public home (wireframe in Part C2). */
 export default async function HomePage() {
   const t = await getTranslations("home");
+  const tNav = await getTranslations("nav");
 
   const trustPoints = [
     { icon: LockKeyholeIcon, text: t("trustPrivate") },
@@ -98,24 +99,42 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Save records (leads to guest mode /try) */}
+      {/* Save records: Create free account + Log in (Part C2 home wireframe, C1.7); guest mode /try stays one tap away */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <div className="flex flex-col gap-6 rounded-2xl bg-primary p-8 text-primary-foreground sm:flex-row sm:items-center sm:justify-between sm:p-10">
+        <div className="flex flex-col gap-6 rounded-2xl bg-primary p-8 text-primary-foreground sm:p-10 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold tracking-tight">{t("saveTitle")}</h2>
             <p className="max-w-lg text-primary-foreground/85">{t("saveBody")}</p>
           </div>
-          <Button
-            asChild
-            size="lg"
-            variant="secondary"
-            className="w-full bg-background text-primary hover:bg-primary-soft sm:w-auto"
-          >
-            <Link href={publicRoutes.tryMyBusiness}>
-              {t("saveCta")}
-              <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
+          <div className="flex flex-col gap-3 lg:items-end">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                variant="secondary"
+                className="h-auto min-h-12 w-full bg-background py-2 leading-tight whitespace-normal text-primary hover:bg-primary-soft sm:w-auto"
+              >
+                <Link href={publicRoutes.signup}>
+                  {tNav("signup")}
+                  <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="h-auto min-h-12 w-full border-primary-foreground/50 bg-transparent py-2 leading-tight whitespace-normal text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground sm:w-auto"
+              >
+                <Link href={publicRoutes.login}>{t("saveLogin")}</Link>
+              </Button>
+            </div>
+            <Link
+              href={publicRoutes.tryMyBusiness}
+              className="inline-flex min-h-11 items-center text-sm font-medium text-primary-foreground underline underline-offset-4"
+            >
+              {t("saveTry")}
             </Link>
-          </Button>
+          </div>
         </div>
       </section>
     </>

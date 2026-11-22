@@ -12,8 +12,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // "/*/dashboard" covers /en/dashboard, /si/dashboard and /ta/dashboard.
-      disallow: ["/*/dashboard", "/admin", "/auth/"],
+      // "/*/dashboard" covers /en/dashboard, /si/dashboard and /ta/dashboard (same for shop setup).
+      disallow: ["/*/dashboard", "/*/welcome", "/admin", "/auth/"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };

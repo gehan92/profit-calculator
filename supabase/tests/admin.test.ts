@@ -208,6 +208,36 @@ describe("admin_find_users(): masked contact, exact search (Part B4, migration 0
     }
   });
 
+  it("finds the same user whichever way the phone number is typed (+94…, 94…, 077…, spaces, dashes)", async () => {
+    for (const text of ["+94771234567", "94771234567", "0771234567", "+94 77 123 4567", "077-123-4567", " (077) 123 4567 "]) {
+      expect((await listUsers(ids.admin, text)).map((row) => row.user_id)).toEqual([ids.owner]);
+    }
+  });
+
+  it("finds nobody by part of a phone number, a different number or a number with letters", async () => {
+    for (const text of ["771234567", "+9477123456", "0771234568", "0771234567x", "94771234567 abc", "077123"]) {
+      expect(await listUsers(ids.admin, text)).toEqual([]);
+    }
+  });
+
+  it("copes with a phone stored the way Supabase really stores it: digits only, no +", async () => {
+    // GoTrue saves "94779998888", not "+94779998888".
+    await db.asService("update auth.users set phone = '94779998888' where id = $1", [ids.other]);
+    try {
+      const byPlus = await listUsers(ids.admin, "+94779998888");
+      expect(byPlus.map((row) => row.user_id)).toEqual([ids.other]);
+      expect(byPlus[0].phone_masked).toBe("+947 *** **88");
+      expect((await listUsers(ids.admin, "0779998888")).map((row) => row.user_id)).toEqual([ids.other]);
+      const summary = await db.as(ids.admin, async (s) => {
+        const { rows } = await s.query<{ result: { phone_masked: string } }>("select admin_user_summary($1) as result", [ids.other]);
+        return rows[0].result;
+      });
+      expect(summary.phone_masked).toBe("+947 *** **88");
+    } finally {
+      await db.asService("update auth.users set phone = null where id = $1", [ids.other]);
+    }
+  });
+
   it("pages through the list and says how many match in total", async () => {
     const first = await listUsers(ids.admin, null, 2, 0);
     const second = await listUsers(ids.admin, null, 2, 2);
@@ -255,9 +285,20 @@ describe("admin_user_summary(): one user, masked, counts only", () => {
       support_access_until: null,
       support_access_on: false,
       shops_count: 1,
-      memberships_count: 1,
+      // The owner's own 'owner' row is not a shop they joined.
+      memberships_count: 0,
       entries_count: 3,
     });
+  });
+
+  it("counts a shop the user joined as Staff or Viewer, but not their own", async () => {
+    await db.asService("insert into business_members (business_id, user_id, role) values ($1, $2, 'staff')", [ids.shop, ids.other]);
+    try {
+      expect(await summary(ids.admin, ids.other)).toMatchObject({ shops_count: 1, memberships_count: 1 });
+      expect(await summary(ids.admin, ids.owner)).toMatchObject({ shops_count: 1, memberships_count: 0 });
+    } finally {
+      await db.asService("delete from business_members where business_id = $1 and user_id = $2", [ids.shop, ids.other]);
+    }
   });
 
   it("shows no name, no full contact, no shop name and nothing about money", async () => {

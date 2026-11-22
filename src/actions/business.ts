@@ -1,62 +1,60 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { LOCALES } from "@/i18n/config";
 import { authorize } from "@/lib/auth/authorize";
-import { getCurrentUser } from "@/lib/auth/current-user";
-import { dashboardPath } from "@/lib/auth/routes";
 import { BusinessRepository, SHOP_NAME_MAX_LENGTH } from "@/lib/business/business-repository";
+import { BUSINESS_TYPES } from "@/lib/business/business-types";
 import { refreshDashboard } from "@/lib/dashboard-cache";
 import { isSupportedCurrency } from "@/lib/money";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-/** Result shape every action returns (Part F4.2): `ok`, or an error key for the UI. */
-export type RenameShopResult =
+// ------------------------------------------------------- completeShopSetup
+
+export type CompleteShopSetupResult =
   | { ok: true }
-  | { ok: false; error: "nameRequired" | "nameTooLong" | "saveFailed" };
+  | {
+      ok: false;
+      error: "nameRequired" | "nameTooLong" | "invalid" | "notLoggedIn" | "notAllowed" | "saveFailed";
+    };
 
-const renameSchema = z.object({
-  /** Sent by the form: Server Actions cannot read the language from the address. */
+const setupSchema = z.object({
+  name: z.string().trim().min(1, "nameRequired").max(SHOP_NAME_MAX_LENGTH, "nameTooLong"),
+  businessType: z.enum(BUSINESS_TYPES),
+  currency: z.string().refine(isSupportedCurrency, "invalid"),
   locale: z.enum(LOCALES),
-  businessId: z.uuid(),
-  name: z
-    .string()
-    .trim()
-    .min(1, "nameRequired")
-    .max(SHOP_NAME_MAX_LENGTH, "nameTooLong"),
 });
 
 /**
- * Sets the shop name (first-login question, Part D2; later also Settings).
- * Validate with zod → check the user → write (RLS allows only the Owner).
+ * First-time shop setup (Part C1.7 "Set up your shop"): name, business type,
+ * currency and language. Owner only; the shop is the Owner's own (found from
+ * the login, never sent by the form) and RLS checks again.
  */
-export async function renameShop(
-  _previous: RenameShopResult | null,
-  formData: FormData,
-): Promise<RenameShopResult> {
-  const parsed = renameSchema.safeParse({
-    locale: formData.get("locale"),
-    businessId: formData.get("businessId"),
-    name: formData.get("name"),
-  });
+export async function completeShopSetup(input: {
+  name: string;
+  businessType: string;
+  currency: string;
+  locale: string;
+}): Promise<CompleteShopSetupResult> {
+  const parsed = setupSchema.safeParse(input);
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message;
-    return { ok: false, error: message === "nameTooLong" ? "nameTooLong" : "nameRequired" };
+    return {
+      ok: false,
+      error: message === "nameRequired" || message === "nameTooLong" ? message : "invalid",
+    };
   }
 
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "saveFailed" };
-
   try {
-    const supabase = await createSupabaseServerClient();
-    await new BusinessRepository(supabase).rename(parsed.data.businessId, parsed.data.name);
+    const access = await authorize("editShop");
+    if (!access.ok) return { ok: false, error: access.error };
+
+    await new BusinessRepository(access.supabase).completeSetup(access.membership.business.id, parsed.data);
   } catch {
     return { ok: false, error: "saveFailed" };
   }
 
-  // Back to the dashboard without "?welcome=", so the question is not asked again.
-  redirect(dashboardPath(parsed.data.locale));
+  refreshDashboard();
+  return { ok: true };
 }
 
 // ------------------------------------------------------- updateShopSettings
