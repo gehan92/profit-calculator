@@ -2,8 +2,11 @@ import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { routing } from "@/i18n/routing";
+import { canOpenAdminPath } from "@/lib/admin/admin-roles";
 import {
+  ADMIN_HIDDEN_PATH,
   dashboardPath,
+  isAdminPath,
   isLoginPath,
   isProtectedPath,
   isTryPath,
@@ -20,7 +23,8 @@ import { copySessionTo, refreshSession } from "@/lib/supabase/proxy-session";
  * 2. Supabase refreshes the login cookie (only when one exists).
  * 3. Guards: logged-out users are sent from /dashboard to /login?next=...,
  *    logged-in users are sent from /login to where they wanted to go and
- *    from /try to their dashboard.
+ *    from /try to their dashboard. Anyone who may not open /admin gets the
+ *    normal 404 page (the panel's existence is never revealed).
  *
  * Proxy is only the first guard. Pages, Server Actions and database RLS
  * always check access again.
@@ -31,6 +35,8 @@ const handleI18nRouting = createIntlMiddleware(routing);
 const NON_LOCALIZED_PREFIXES = ["/admin", "/auth"] as const;
 
 export default async function proxy(request: NextRequest) {
+  if (isAdminPath(request.nextUrl.pathname)) return guardAdmin(request);
+
   if (isNonLocalizedPath(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
@@ -59,6 +65,22 @@ export default async function proxy(request: NextRequest) {
     return redirectKeepingSession(request, response, dashboardPath(pageLocale));
   }
 
+  return response;
+}
+
+/**
+ * /admin/*: keeps the login fresh and reads the person's role. A guest, an
+ * ordinary user, a blocked account, or Support on an Admin-only screen is sent
+ * to a page that does not exist, so they see the usual 404. (The admin pages
+ * and Server Actions check the role again.)
+ */
+async function guardAdmin(request: NextRequest): Promise<NextResponse> {
+  const response = NextResponse.next();
+  const { platformRole } = await refreshSession(request, response, { withPlatformRole: true });
+
+  if (!platformRole || !canOpenAdminPath(platformRole, request.nextUrl.pathname)) {
+    return copySessionTo(NextResponse.rewrite(new URL(ADMIN_HIDDEN_PATH, request.url)), response);
+  }
   return response;
 }
 

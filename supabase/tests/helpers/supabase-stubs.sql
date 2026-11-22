@@ -11,6 +11,7 @@ create schema auth;
 create table auth.users (
   id                 uuid primary key,
   email              text,
+  phone              text,
   raw_user_meta_data jsonb not null default '{}'::jsonb
 );
 

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest, NextResponse } from "next/server";
+import type { PlatformRole } from "@/lib/roles";
 import { hasAuthCookie, supabaseConfig } from "./config";
 import type { Database } from "./types";
 
@@ -10,13 +11,18 @@ import type { Database } from "./types";
  * New cookies and the "do not cache" headers from Supabase are written onto
  * `response`, which the proxy must then return (or copy onto a redirect with
  * `copySessionTo`), otherwise the user is logged out on the next request.
+ *
+ * With `withPlatformRole` it also reads the person's role on the website
+ * (user, support or admin) from their own profile: only /admin needs it, so
+ * the extra database call is made only there.
  */
 export async function refreshSession(
   request: NextRequest,
   response: NextResponse,
-): Promise<{ userId: string | null }> {
+  options: { withPlatformRole?: boolean } = {},
+): Promise<{ userId: string | null; platformRole: PlatformRole | null }> {
   // Guests have no login cookie: skip the network call, keep calculators fast.
-  if (!hasAuthCookie(request.cookies.getAll())) return { userId: null };
+  if (!hasAuthCookie(request.cookies.getAll())) return { userId: null, platformRole: null };
 
   const { url, publishableKey } = supabaseConfig();
   const supabase = createServerClient<Database>(url, publishableKey, {
@@ -37,7 +43,16 @@ export async function refreshSession(
 
   // getClaims() checks the token signature; never trust getSession() here.
   const { data } = await supabase.auth.getClaims();
-  return { userId: data?.claims?.sub ?? null };
+  const userId = data?.claims?.sub ?? null;
+  if (!userId || !options.withPlatformRole) return { userId, platformRole: null };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("platform_role, status")
+    .eq("id", userId)
+    .maybeSingle();
+  // A blocked account is an ordinary user.
+  return { userId, platformRole: profile?.status === "active" ? profile.platform_role : "user" };
 }
 
 /** Moves refreshed session cookies and cache headers onto another response (e.g. a redirect). */

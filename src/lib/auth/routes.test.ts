@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  ADMIN_HIDDEN_PATH,
   dashboardPath,
+  isAdminPath,
   isLoginPath,
   isProtectedPath,
   isTryPath,
@@ -80,5 +82,23 @@ describe("dashboardPath and loginPath", () => {
     expect(dashboardPath()).toBe("/en/dashboard");
     expect(loginPath("si", "/si/dashboard")).toBe("/si/login?next=%2Fsi%2Fdashboard");
     expect(loginPath("en")).toBe("/en/login");
+  });
+});
+
+describe("isAdminPath", () => {
+  it.each(["/admin", "/admin/", "/admin/users", "/admin/users/abc"])("%s is an admin path", (path) => {
+    expect(isAdminPath(path)).toBe(true);
+  });
+
+  it.each(["/", "/en/admin", "/administrator", "/adminx/users", "/en/dashboard", "/auth/callback"])(
+    "%s is not",
+    (path) => {
+      expect(isAdminPath(path)).toBe(false);
+    },
+  );
+
+  it("hides the panel behind an address that does not exist, in the default language", () => {
+    expect(ADMIN_HIDDEN_PATH).toBe("/en/page-not-found");
+    expect(splitLocale(ADMIN_HIDDEN_PATH)).toEqual({ locale: "en", path: "/page-not-found" });
   });
 });

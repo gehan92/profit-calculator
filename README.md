@@ -18,6 +18,7 @@ code (for example "Part D1") point to that document.
 | Forms             | react-hook-form + zod                                   |
 | Charts            | Recharts                                                |
 | Tests             | Vitest (unit + database RLS tests on PGlite)            |
+| Installable app   | Web app manifest + Serwist service worker (PWA)         |
 | Hosting           | Vercel                                                  |
 
 ## Getting started
@@ -40,6 +41,19 @@ npm run dev                  # http://localhost:3000 → redirects to /en
 | `npm test`          | Unit tests and database RLS tests                         |
 | `npm run db:push`   | Apply `supabase/migrations` to the linked Supabase project |
 | `npm run db:types`  | Regenerate `src/lib/supabase/types.ts` after a migration  |
+
+### Trying the installable app (PWA)
+
+The service worker (`src/app/sw.ts`, built by Serwist) runs **only in a production
+build**, so development never shows old pages by mistake:
+
+```bash
+npm run build && npm start   # http://localhost:3000
+```
+
+Then open Chrome DevTools → Application → Service Workers (and Manifest), or tick
+"Offline" in the Network tab to see the offline calculators and the offline page.
+After an installed app has been tried, "Clear site data" in DevTools resets it.
 
 ## Project structure (Part F2)
 

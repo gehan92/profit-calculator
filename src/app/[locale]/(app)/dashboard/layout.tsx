@@ -2,10 +2,14 @@ import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { ActivityPing } from "@/components/dashboard/activity-ping";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { EntryDeleteProvider } from "@/components/dashboard/entry-delete-provider";
 import { OfflineStatus } from "@/components/offline/offline-status";
+import { MaintenanceBanner } from "@/components/platform/maintenance-banner";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { OfflinePages } from "@/components/pwa/offline-pages";
 import type { AppLocale } from "@/i18n/config";
 import { routing } from "@/i18n/routing";
 import { getDashboardContext } from "@/lib/auth/dashboard-access";
@@ -33,8 +37,16 @@ export default async function DashboardLayout({ children, params }: LayoutProps<
         {t("skipToContent")}
       </a>
       <DashboardHeader locale={locale} />
+      {/* "Back soon" strip while the Admin has maintenance mode ON (Part C2). */}
+      <Suspense fallback={null}>
+        <MaintenanceBanner />
+      </Suspense>
+      {/* Offer to add the app to the home screen (second visit onwards, Part F4.4). */}
+      <InstallPrompt />
       {/* Amber banner while offline, and the sender for records added offline. */}
       <OfflineStatus />
+      {/* Marks the person as active, for the admin's "last active" column. */}
+      <ActivityPing />
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 gap-8 lg:px-6">
         <Suspense fallback={<div className="hidden w-56 shrink-0 lg:block" />}>
@@ -50,6 +62,9 @@ export default async function DashboardLayout({ children, params }: LayoutProps<
       <Suspense fallback={null}>
         <RoleNav locale={locale} variant="tabs" />
       </Suspense>
+
+      {/* Saved for offline use soon after the page loads, so the app can be opened and used without internet. */}
+      <OfflinePages group="dashboard" urls={[`/${locale}/dashboard`, `/${locale}/dashboard/add`]} />
     </>
   );
 }

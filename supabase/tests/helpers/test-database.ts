@@ -38,13 +38,19 @@ export class TestDatabase {
       .map((name) => join(MIGRATIONS_DIR, name));
   }
 
-  /** Creates a login user; the migration's trigger then creates their profile. */
-  async createUser(fullName: string): Promise<string> {
+  /**
+   * Creates a login user; the migration's trigger then creates their profile.
+   * `contact` sets the email and phone shown in the admin user list.
+   */
+  async createUser(
+    fullName: string,
+    contact: { email?: string; phone?: string } = {},
+  ): Promise<string> {
     const id = randomUUID();
-    await this.db.query("insert into auth.users (id, raw_user_meta_data) values ($1, $2)", [
-      id,
-      { full_name: fullName },
-    ]);
+    await this.db.query(
+      "insert into auth.users (id, email, phone, raw_user_meta_data) values ($1, $2, $3, $4)",
+      [id, contact.email ?? null, contact.phone ?? null, { full_name: fullName }],
+    );
     return id;
   }
 

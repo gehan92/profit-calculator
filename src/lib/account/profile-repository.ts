@@ -19,6 +19,19 @@ export class ProfileQueryError extends Error {
 export class ProfileRepository {
   constructor(private readonly db: SupabaseClient<Database>) {}
 
+  /**
+   * Whether an Admin has paused this account (`blocked`, Part D4 "Block").
+   * A missing profile counts as active: the database refuses a blocked or
+   * profile-less person's writes anyway (`is_active()`), so this only decides
+   * which screen to show.
+   */
+  async isBlocked(userId: string): Promise<boolean> {
+    const { data, error } = await this.db.from("profiles").select("status").eq("id", userId).maybeSingle();
+
+    if (error) throw new ProfileQueryError("check the account status", error);
+    return data?.status === "blocked";
+  }
+
   /** The time support access ends, or `null` when it was never switched on / was switched off. */
   async getSupportAccessUntil(userId: string): Promise<string | null> {
     const { data, error } = await this.db

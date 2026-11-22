@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { PrivateCacheGuard } from "@/components/pwa/private-cache-guard";
+import { ServiceWorker } from "@/components/pwa/service-worker";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/config/site";
 import { routing } from "@/i18n/routing";
@@ -32,6 +34,16 @@ export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Pr
     description: t("description"),
     applicationName: t("title"),
     formatDetection: { telephone: false },
+    // Browser tab and home screen icons (public/icons, made from the logo).
+    icons: {
+      icon: [
+        { url: "/icons/icon.svg", type: "image/svg+xml" },
+        { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      ],
+      apple: { url: "/icons/apple-touch-icon.png", sizes: "180x180" },
+    },
+    // iPhone: open from the home screen without the browser bars.
+    appleWebApp: { capable: true, title: tCommon("appName"), statusBarStyle: "default" },
     openGraph: { type: "website", siteName: tCommon("appName") },
     // Big preview image when a link is shared (image: app/opengraph-image.tsx).
     twitter: { card: "summary_large_image" },
@@ -57,6 +69,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
       <body className="flex min-h-dvh flex-col">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
         <Toaster theme="light" position="top-center" richColors />
+        {/* Offline support and "Add to home screen" (Part F4.4). Does nothing during development. */}
+        <ServiceWorker />
+        {/* Deletes the saved dashboard pages when nobody is logged in (shared phones). */}
+        <PrivateCacheGuard />
         {/* Page views (Part F4.6). Sends nothing during local development. */}
         <Analytics />
       </body>

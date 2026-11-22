@@ -71,7 +71,9 @@
     "loggedInAs": "Logged in as",
     "calculators": "Free calculators",
     "logout": "Log out",
-    "settings": "Settings"
+    "settings": "Settings",
+    "admin": "Admin panel",
+    "feedback": "Send feedback"
   },
   "roleBadge": {
     "staff": "Staff",
@@ -565,5 +567,60 @@
   "notFound": {
     "title": "Page not found",
     "body": "This page doesn't exist or has moved."
+  },
+  "paused": {
+    "metaTitle": "Account paused",
+    "title": "Your account is paused",
+    "body": "We have paused your account for now. Your records are safe. Message us and we will help you.",
+    "whatsapp": "Message us on WhatsApp",
+    "whatsappText": "Hello, my Profit Calculator account is paused. Please help me.",
+    "noContact": "Please contact us to find out more.",
+    "calculators": "Use the free calculators"
+  },
+  "maintenance": {
+    "title": "Back soon",
+    "body": "We are updating the website. Your records are safe. Some things may not work for a short time. The calculators still work."
+  },
+  "feedback": {
+    "metaTitle": "Send feedback",
+    "title": "Send us your feedback",
+    "intro": "Tell us what is good, what is confusing, or what you need. We read every message.",
+    "messageLabel": "Your message",
+    "messagePlaceholder": "Type here…",
+    "contactLabel": "Phone or email (optional)",
+    "contactHint": "Only if you want us to answer you.",
+    "pageNote": "We also send the page you came from: {page}",
+    "send": "Send message",
+    "sending": "Sending…",
+    "emptyError": "Please write your message.",
+    "tooLong": "Please keep your message under {max} letters.",
+    "tooMany": "You sent several messages. Please wait a few minutes and try again.",
+    "failed": "It did not work. Please try again.",
+    "thanksTitle": "Thank you!",
+    "thanksBody": "We got your message and we will read it soon.",
+    "sendAnother": "Send another message",
+    "helpTitle": "Need help right now?",
+    "helpBody": "Message us on WhatsApp.",
+    "helpButton": "WhatsApp support",
+    "helpText": "Hello, I need help with the Profit Calculator."
+  },
+  "install": {
+    "title": "Add to your home screen",
+    "body": "Open the calculators like an app. They also work without internet.",
+    "add": "Add",
+    "later": "Not now",
+    "close": "Close",
+    "iosBody": "Tap the Share button, then choose “Add to Home Screen”."
+  },
+  "offlinePage": {
+    "metaTitle": "You are offline",
+    "title": "You are offline",
+    "body": "Check your internet and try again. Calculators you opened before still work. Records you add are saved on this phone and sent when you are back online.",
+    "retry": "Try again"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "body": "This is our mistake, not yours. Your records are safe. Please try again.",
+    "retry": "Try again"
   }
 }

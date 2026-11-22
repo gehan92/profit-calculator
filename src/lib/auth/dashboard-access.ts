@@ -3,8 +3,9 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { AppLocale } from "@/i18n/config";
+import { isAccountPaused } from "@/lib/auth/account-status";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth/current-user";
-import { dashboardPath, loginPath } from "@/lib/auth/routes";
+import { dashboardPath, loginPath, pausedPath } from "@/lib/auth/routes";
 import { BusinessRepository, type Membership } from "@/lib/business/business-repository";
 import { canOpen, landing, type DashboardRoute } from "@/lib/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -27,6 +28,8 @@ export interface DashboardContext {
 export const getDashboardContext = cache(async (locale: AppLocale): Promise<DashboardContext> => {
   const user = await getCurrentUser();
   if (!user) redirect(loginPath(locale, dashboardPath(locale)));
+  // A paused (blocked) account sees the "Your account is paused" screen, never its records.
+  if (await isAccountPaused(user.id)) redirect(pausedPath(locale));
 
   const [supabase, t] = await Promise.all([
     createSupabaseServerClient(),

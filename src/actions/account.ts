@@ -102,6 +102,26 @@ export async function setSupportAccess(enabled: boolean): Promise<SetSupportAcce
   }
 }
 
+// --------------------------------------------------------------- recordActivity
+
+/**
+ * Marks the logged-in person as active (the admin Users list shows "last
+ * active"). The database function itself writes at most once an hour, so
+ * calling this often costs almost nothing. Failures are ignored: this must
+ * never get in the way of using the app.
+ */
+export async function recordActivity(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    await supabase.rpc("touch_last_active");
+  } catch {
+    // Nothing to do: "last active" is only for the admin's overview.
+  }
+}
+
 // ---------------------------------------------------------------- deleteAccount
 
 export type DeleteAccountResult =

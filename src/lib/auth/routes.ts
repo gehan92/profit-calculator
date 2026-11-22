@@ -29,6 +29,18 @@ export function isProtectedPath(path: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
+/** True for /admin and everything under it (the English-only admin panel, outside `[locale]`). */
+export function isAdminPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+/**
+ * Where the proxy sends everyone who may not open /admin: an address that
+ * does not exist, so they get the same 404 page as for any wrong address and
+ * cannot tell that an admin panel exists (Part C2 "Access rules").
+ */
+export const ADMIN_HIDDEN_PATH = `/${DEFAULT_LOCALE}/page-not-found`;
+
 /** True for the login page itself. */
 export function isLoginPath(path: string): boolean {
   return path === authRoutes.login;
@@ -61,6 +73,11 @@ export function safeNextPath(value: string | null | undefined, fallback: string)
 /** The dashboard in one language, e.g. "/si/dashboard". The default landing page after login. */
 export function dashboardPath(locale: AppLocale = DEFAULT_LOCALE): string {
   return `/${locale}${authRoutes.dashboard}`;
+}
+
+/** The "Your account is paused" screen in one language (Part C2, Part F2 `paused/page.tsx`). */
+export function pausedPath(locale: AppLocale = DEFAULT_LOCALE): string {
+  return `/${locale}/paused`;
 }
 
 /** The login page in one language, keeping where the person wanted to go. */

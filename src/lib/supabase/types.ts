@@ -365,7 +365,32 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      admin_daily_stats: {
+        Args: { p_days?: number }
+        Returns: {
+          active_users: number
+          day: string
+          signups: number
+        }[]
+      }
       admin_stats: { Args: never; Returns: Json }
+      admin_user_detail: { Args: { p_user_id: string }; Returns: Json }
+      admin_users: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          created_at: string
+          email: string
+          entries_count: number
+          full_name: string
+          last_active_at: string
+          phone: string
+          plan: string
+          platform_role: Database["public"]["Enums"]["platform_role"]
+          status: string
+          total_count: number
+          user_id: string
+        }[]
+      }
       is_active: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_team: { Args: never; Returns: boolean }
@@ -373,6 +398,7 @@ export type Database = {
         Args: { b: string }
         Returns: Database["public"]["Enums"]["member_role"]
       }
+      touch_last_active: { Args: never; Returns: undefined }
     }
     Enums: {
       entry_type: "income" | "expense"

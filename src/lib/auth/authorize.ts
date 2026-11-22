@@ -1,4 +1,5 @@
 import "server-only";
+import { isAccountPaused } from "@/lib/auth/account-status";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { BusinessRepository, type Membership } from "@/lib/business/business-repository";
 import { can, type Permission } from "@/lib/roles";
@@ -11,7 +12,8 @@ export type Access =
 /**
  * The check every Server Action starts with (Part F4.2): who is logged in,
  * which shop and role they have, and whether that role may do `permission`
- * (Part B2). Row Level Security checks again in the database.
+ * (Part B2). A paused (blocked) account is refused. Row Level Security checks
+ * again in the database.
  *
  * Returns the person's own Supabase client, so everything done with it stays
  * inside what they are allowed to see.
@@ -19,6 +21,8 @@ export type Access =
 export async function authorize(permission: Permission): Promise<Access> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "notLoggedIn" };
+  // A paused account may not do anything (the pages already send it to the paused screen).
+  if (await isAccountPaused(user.id)) return { ok: false, error: "notAllowed" };
 
   const supabase = await createSupabaseServerClient();
   const membership = await new BusinessRepository(supabase).findFirstMembership(user.id);

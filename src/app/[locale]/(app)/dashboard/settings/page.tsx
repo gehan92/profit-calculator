@@ -4,7 +4,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { signOut } from "@/actions/auth";
+import { LogoutForm } from "@/components/auth/logout-form";
 import { DeleteAccountCard } from "@/components/settings/delete-account-card";
 import { ExportCard } from "@/components/settings/export-card";
 import { SettingsCard } from "@/components/settings/settings-card";
@@ -84,13 +84,12 @@ async function SettingsContent({ params }: Pick<PageProps<"/[locale]/dashboard/s
           </p>
         )}
         {/* A real form: logging out works even before the page's JavaScript has loaded. */}
-        <form action={signOut}>
-          <input type="hidden" name="locale" value={locale} />
+        <LogoutForm locale={locale}>
           <Button type="submit" variant="outline" className="h-12 w-full bg-background text-base sm:w-auto sm:px-6">
             <LogOutIcon data-icon="inline-start" aria-hidden="true" />
             {tAccount("logout")}
           </Button>
-        </form>
+        </LogoutForm>
       </SettingsCard>
 
       <SettingsCard id="danger" title={t("dangerTitle")} description={t("dangerBody")} danger>

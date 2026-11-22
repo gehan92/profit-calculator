@@ -4,6 +4,8 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Logo } from "@/components/layout/logo";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AppLocale } from "@/i18n/config";
+import { getPlatformContext } from "@/lib/admin/admin-guard";
+import { isTeamRole } from "@/lib/admin/admin-roles";
 import { getDashboardContext } from "@/lib/auth/dashboard-access";
 import { canOpen, dashboardRoutes } from "@/lib/roles";
 import { AccountMenu } from "./account-menu";
@@ -28,9 +30,10 @@ export function DashboardHeader({ locale }: { locale: AppLocale }) {
 }
 
 async function ShopAndAccount({ locale }: { locale: AppLocale }) {
-  const [{ user, membership }, t] = await Promise.all([
+  const [{ user, membership }, t, platform] = await Promise.all([
     getDashboardContext(locale),
     getTranslations("roleBadge"),
+    getPlatformContext(),
   ]);
   const { role, business } = membership;
 
@@ -45,7 +48,11 @@ async function ShopAndAccount({ locale }: { locale: AppLocale }) {
         )}
       </div>
       <LanguageSwitcher />
-      <AccountMenu email={user.email} showSettings={canOpen(role, dashboardRoutes.settings)} />
+      <AccountMenu
+        email={user.email}
+        showSettings={canOpen(role, dashboardRoutes.settings)}
+        showAdmin={platform !== null && isTeamRole(platform.role)}
+      />
     </>
   );
 }
