@@ -56,7 +56,9 @@ export function EditEntrySheet({ entry, role, today, onClose, onDelete }: EditEn
             ? t("notAllowedEdit")
             : error === "futureDate"
               ? t("futureDate")
-              : t("saveFailedEdit"),
+              : error === "tooMany"
+                ? t("tooMany")
+                : t("saveFailedEdit"),
       );
       // Already deleted or changed elsewhere: the list is refreshing, close the sheet.
       if (error === "notFound") onClose();

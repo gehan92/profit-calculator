@@ -36,7 +36,8 @@
     "tooMany": "Too many tries. Please wait a minute and try again.",
     "failed": "Something went wrong. Please try again.",
     "callbackError": "We couldn't log you in. Please try again.",
-    "privacy": "Your records are private. No ads inside your records."
+    "privacy": "Your records are private. No ads inside your records.",
+    "agree": "By continuing you agree to our <terms>Terms</terms> and <privacy>Privacy Policy</privacy>."
   },
   "dashboard": {
     "metaTitle": "My shop",
@@ -287,7 +288,8 @@
     "notFound": "This record was already changed or deleted.",
     "notAllowedEdit": "You can't change this record.",
     "saveFailedEdit": "Could not save the changes. Please try again.",
-    "offlineAction": "You are offline. Try again when you are back online."
+    "offlineAction": "You are offline. Try again when you are back online.",
+    "tooMany": "Too many changes in a short time. Please wait a moment and try again."
   },
   "myBusiness": {
     "todayProfit": "Today's profit",
@@ -622,5 +624,191 @@
     "title": "Something went wrong",
     "body": "This is our mistake, not yours. Your records are safe. Please try again.",
     "retry": "Try again"
+  },
+  "legal": {
+    "lastUpdated": "Last updated: 22 November 2026",
+    "contactButton": "Send us a message"
+  },
+  "about": {
+    "metaTitle": "About us",
+    "metaDescription": "Profit Calculator is a free tool that helps small shop owners in Sri Lanka see their real profit in seconds, on any phone.",
+    "title": "About Profit Calculator",
+    "intro": "Profit Calculator helps small shop owners in Sri Lanka see their real profit in a few seconds, on any phone. It is free, and it works in English, Sinhala and Tamil.",
+    "calcButton": "Open the free calculators",
+    "sections": [
+      {
+        "title": "Why we made it",
+        "body": [
+          "Many small shop owners know how much they sell, but not how much they keep. Rent, wages, transport, wasted stock and the money taken for the family often get lost. We made simple tools so you can see the real number."
+        ]
+      },
+      {
+        "title": "What you can do",
+        "body": [
+          "Use the free calculators for profit, margin, selling price and break-even. You do not need to log in.",
+          "Use My Business (Try) to write down your daily sales and costs on your phone. Log in when you want to keep your records safe and see your monthly summary and real profit."
+        ]
+      },
+      {
+        "title": "Our promise",
+        "body": [
+          "Your records are private. No one, not even our admin, can see a shop's money records unless the owner allows it.",
+          "No ads inside your records. No loan offers. Your data is yours: you can download it or delete your account at any time."
+        ]
+      },
+      {
+        "title": "Made for any phone",
+        "body": [
+          "Light pages, big buttons and offline support, so it works on cheap phones and on weak internet."
+        ]
+      },
+      {
+        "title": "Tell us what you think",
+        "body": [
+          "We are still improving. If something is wrong or missing, please send us a message."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "metaTitle": "Privacy policy",
+    "metaDescription": "What information Profit Calculator keeps, why we keep it, and how you can download or delete it.",
+    "title": "Privacy Policy",
+    "intro": "This page explains what information Profit Calculator keeps, why, and what you can do about it. We wrote it in simple words.",
+    "sections": [
+      {
+        "title": "The short version",
+        "body": [
+          "Your shop records are private. Only you can see them. Our admin can see website totals only, never your money.",
+          "We do not sell your information. We do not show ads.",
+          "You can download all your records, or delete your account, at any time in Settings."
+        ]
+      },
+      {
+        "title": "Without an account",
+        "body": [
+          "You do not need to log in to use the calculators. The numbers you type stay on your phone and are not sent to us.",
+          "My Business (Try) saves your records only on this phone. If you clear your browser data or change phone, they are lost, unless you log in and move them to your account first."
+        ]
+      },
+      {
+        "title": "With an account",
+        "body": [
+          "When you log in with Google or email, we keep your name (from Google, if you gave one), your email address, your language, and your shop's name and currency.",
+          "We also keep the records you add: date, amount, type (income or expense), category and an optional note. We keep the time you last used the website, only to count active users.",
+          "Please do not write other people's private details in notes."
+        ]
+      },
+      {
+        "title": "Who can see your records",
+        "body": [
+          "Only you. Our admin can see website totals (for example how many people use the website), but never the amounts in your shop.",
+          "If you allow our support team in Settings, they can look at your records for 7 days to help you. It turns off by itself.",
+          "We may have to share information with others only when the law requires it."
+        ]
+      },
+      {
+        "title": "Messages you send us",
+        "body": [
+          "If you send feedback, we keep your message, your contact (if you gave one), the page you were on, and your account if you were logged in. We use it only to answer you and to improve the website."
+        ]
+      },
+      {
+        "title": "Analytics and cookies",
+        "body": [
+          "We count page visits and a few actions (for example “calculator used”) with Vercel Analytics. This never includes amounts or what you type.",
+          "We use only the cookies needed to keep you logged in and to remember your language. There are no advertising cookies.",
+          "Your phone also stores small files so the website works offline and remembers your choices (language, numbers in the calculators)."
+        ]
+      },
+      {
+        "title": "Where your data is kept",
+        "body": [
+          "Your data is stored with our service providers: Supabase (database and login) and Vercel (hosting), and Google if you log in with Google. Their servers may be outside Sri Lanka. We protect each shop's records so other users cannot read them."
+        ]
+      },
+      {
+        "title": "Your choices",
+        "body": [
+          "Download: Settings → Download your records (CSV).",
+          "Delete: Settings → Delete my account. Your profile, your shop and all its records are then deleted for ever. Messages you sent us may stay without your name. A small record needed for safety (for example that an account was deleted) may be kept. Backups may keep a copy for a short time."
+        ]
+      },
+      {
+        "title": "Changes",
+        "body": [
+          "If we change this page, we will update the date at the top. If the change is important, we will tell you on the website."
+        ]
+      },
+      {
+        "title": "Contact us",
+        "body": [
+          "Questions about your information? Send us a message on the feedback page."
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "metaTitle": "Terms of use",
+    "metaDescription": "The simple rules for using Profit Calculator.",
+    "title": "Terms of Use",
+    "intro": "By using Profit Calculator you agree to these terms. Please read them. They are short.",
+    "sections": [
+      {
+        "title": "What Profit Calculator is",
+        "body": [
+          "Profit Calculator is a set of free tools that help small businesses understand their profit, and a place to keep simple daily records."
+        ]
+      },
+      {
+        "title": "Not financial advice",
+        "body": [
+          "Results are only as good as the numbers you type. They are a guide, not accounting, tax or legal advice. Please check important decisions with a qualified person."
+        ]
+      },
+      {
+        "title": "Your account",
+        "body": [
+          "You need an account only to save records. Keep your login safe and do not share it. You are responsible for what is done with your account. Please give correct information."
+        ]
+      },
+      {
+        "title": "Your records",
+        "body": [
+          "Your records belong to you. We store them only so that you can use the service. You can download or delete them at any time."
+        ]
+      },
+      {
+        "title": "Please do not",
+        "body": [
+          "Do not use the website to break the law, to attack or overload it, to try to see other people's records, or to send harmful or abusive messages.",
+          "If an account is misused, we may pause it. You will see this on screen and you can contact us."
+        ]
+      },
+      {
+        "title": "Free service and changes",
+        "body": [
+          "The service is free for now. We may change, pause or stop parts of the website, for example for maintenance. We will try to give notice of big changes. If paid plans start later, we will tell you before anything changes for you."
+        ]
+      },
+      {
+        "title": "Our responsibility",
+        "body": [
+          "We work hard to keep the website correct and your records safe, but we cannot promise that it will always work without errors or breaks. As far as the law allows, we are not responsible for losses that come from using the website or from mistakes in the numbers entered. Please download your records now and then as your own backup."
+        ]
+      },
+      {
+        "title": "Changes to these terms",
+        "body": [
+          "We may update these terms. The date at the top shows the latest version. If you keep using the website after a change, it means you accept it."
+        ]
+      },
+      {
+        "title": "Contact us",
+        "body": [
+          "Questions? Send us a message on the feedback page."
+        ]
+      }
+    ]
   }
 }

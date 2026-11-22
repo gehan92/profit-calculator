@@ -74,9 +74,11 @@ export function AddEntryPanel({ role, initialType }: AddEntryPanelProps) {
       toast.error(
         result.error === "futureDate"
           ? tEntry("futureDate")
-          : result.error === "notAllowed"
-            ? t("notAllowed")
-            : t("saveFailed"),
+          : result.error === "tooMany"
+            ? tEntry("tooMany")
+            : result.error === "notAllowed"
+              ? t("notAllowed")
+              : t("saveFailed"),
       );
       return false;
     }

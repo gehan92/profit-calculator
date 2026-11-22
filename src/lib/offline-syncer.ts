@@ -15,7 +15,7 @@ export type SyncResult =
       /** A temporary problem: keep these and try again later. */
       failed: string[];
     }
-  | { ok: false; error: "invalid" | "notLoggedIn" | "notAllowed" | "saveFailed" };
+  | { ok: false; error: "invalid" | "notLoggedIn" | "notAllowed" | "tooMany" | "saveFailed" };
 
 export type SyncState = "idle" | "sending" | "failed";
 

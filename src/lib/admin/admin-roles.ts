@@ -18,6 +18,8 @@ export const adminRoutes = {
   feedback: "/admin/feedback",
   audit: "/admin/audit",
   settings: "/admin/settings",
+  /** Two-step login: the one page open before the code step is done (see mfa.ts). */
+  security: "/admin/security",
 } as const;
 
 const ADMIN_ONLY = ["admin"] as const;
@@ -39,6 +41,8 @@ const PERMISSIONS = {
   viewAudit: ADMIN_ONLY,
   /** Maintenance mode, feature flags, limits, defaults, support number. */
   changeSettings: ADMIN_ONLY,
+  /** Set up or check the authenticator app (two-step login). */
+  manageSecurity: TEAM,
 } as const satisfies Record<string, readonly PlatformRole[]>;
 
 export type AdminPermission = keyof typeof PERMISSIONS;
@@ -60,6 +64,7 @@ function permissionForPath(path: string): AdminPermission | null {
   if (clean === adminRoutes.feedback) return "viewFeedback";
   if (clean === adminRoutes.audit) return "viewAudit";
   if (clean === adminRoutes.settings) return "changeSettings";
+  if (clean === adminRoutes.security) return "manageSecurity";
   return null;
 }
 
@@ -96,4 +101,5 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { href: adminRoutes.feedback, label: "Feedback", permission: "viewFeedback" },
   { href: adminRoutes.audit, label: "Audit log", permission: "viewAudit" },
   { href: adminRoutes.settings, label: "Settings", permission: "changeSettings" },
+  { href: adminRoutes.security, label: "Security", permission: "manageSecurity" },
 ];

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { routing } from "@/i18n/routing";
 import { canOpenAdminPath } from "@/lib/admin/admin-roles";
+import { ADMIN_SECURITY_PATH, isSecurityPath, mfaRequired } from "@/lib/admin/mfa";
 import {
   ADMIN_HIDDEN_PATH,
   dashboardPath,
@@ -76,10 +77,15 @@ export default async function proxy(request: NextRequest) {
  */
 async function guardAdmin(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.next();
-  const { platformRole } = await refreshSession(request, response, { withPlatformRole: true });
+  const { platformRole, assuranceLevel } = await refreshSession(request, response, { withPlatformRole: true });
 
   if (!platformRole || !canOpenAdminPath(platformRole, request.nextUrl.pathname)) {
     return copySessionTo(NextResponse.rewrite(new URL(ADMIN_HIDDEN_PATH, request.url)), response);
+  }
+
+  // Two-step login (Part F5): until the authenticator code is entered, only the security page opens.
+  if (mfaRequired(platformRole) && assuranceLevel !== "aal2" && !isSecurityPath(request.nextUrl.pathname)) {
+    return redirectKeepingSession(request, response, ADMIN_SECURITY_PATH);
   }
   return response;
 }

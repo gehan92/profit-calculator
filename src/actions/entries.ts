@@ -23,7 +23,10 @@ import { EntryQueryError, EntryRepository } from "@/lib/entries/entry-repository
 
 export type AddEntryResult =
   | { ok: true }
-  | { ok: false; error: "invalid" | "futureDate" | "notLoggedIn" | "notAllowed" | "saveFailed" };
+  | {
+      ok: false;
+      error: "invalid" | "futureDate" | "notLoggedIn" | "notAllowed" | "tooMany" | "saveFailed";
+    };
 
 const addEntrySchema = z.object({
   entry: entryFieldsSchema,
@@ -38,7 +41,7 @@ export async function addEntry(entry: EntryFields, clientId: string): Promise<Ad
   if (parsed.data.entry.entryDate > latestEntryDate()) return { ok: false, error: "futureDate" };
 
   try {
-    const access = await authorize("addEntry");
+    const access = await authorize("addEntry", { limit: "entryChange" });
     if (!access.ok) return { ok: false, error: access.error };
 
     await new EntryRepository(access.supabase).add(
@@ -60,7 +63,14 @@ export type ChangeEntryResult =
   | { ok: true }
   | {
       ok: false;
-      error: "invalid" | "futureDate" | "notLoggedIn" | "notAllowed" | "notFound" | "saveFailed";
+      error:
+        | "invalid"
+        | "futureDate"
+        | "notLoggedIn"
+        | "notAllowed"
+        | "tooMany"
+        | "notFound"
+        | "saveFailed";
     };
 
 const entryIdSchema = z.uuid();
@@ -77,7 +87,7 @@ export async function updateEntry(id: string, entry: EntryFields): Promise<Chang
   if (parsed.data.entry.entryDate > latestEntryDate()) return { ok: false, error: "futureDate" };
 
   try {
-    const access = await authorize("editEntry");
+    const access = await authorize("editEntry", { limit: "entryChange" });
     if (!access.ok) return { ok: false, error: access.error };
 
     const changed = await new EntryRepository(access.supabase).update(
@@ -102,7 +112,7 @@ export async function deleteEntry(id: string): Promise<ChangeEntryResult> {
   if (!entryIdSchema.safeParse(id).success) return { ok: false, error: "invalid" };
 
   try {
-    const access = await authorize("deleteEntry");
+    const access = await authorize("deleteEntry", { limit: "entryChange" });
     if (!access.ok) return { ok: false, error: access.error };
 
     const deleted = await new EntryRepository(access.supabase).delete(id);
@@ -119,7 +129,7 @@ export async function deleteEntry(id: string): Promise<ChangeEntryResult> {
 
 export type SyncOfflineEntriesResult =
   | { ok: true; saved: string[]; refused: string[]; failed: string[] }
-  | { ok: false; error: "invalid" | "notLoggedIn" | "notAllowed" | "saveFailed" };
+  | { ok: false; error: "invalid" | "notLoggedIn" | "notAllowed" | "tooMany" | "saveFailed" };
 
 /**
  * Sends entries added while offline (Part F4.4): Owner and Staff.
@@ -146,7 +156,7 @@ export async function syncOfflineEntries(
   }
 
   try {
-    const access = await authorize("addEntry");
+    const access = await authorize("addEntry", { limit: "bulkSend" });
     if (!access.ok) return { ok: false, error: access.error };
 
     const outcome = await new EntryRepository(access.supabase).addQueued(
@@ -164,7 +174,7 @@ export async function syncOfflineEntries(
 
 export type ImportGuestEntriesResult =
   | { ok: true; added: number; alreadySaved: number }
-  | { ok: false; error: "invalid" | "notLoggedIn" | "notOwner" | "saveFailed" };
+  | { ok: false; error: "invalid" | "notLoggedIn" | "notOwner" | "tooMany" | "saveFailed" };
 
 const importSchema = z
   .array(clientEntrySchema)
@@ -188,7 +198,7 @@ export async function importGuestEntries(
   if (!parsed.success) return { ok: false, error: "invalid" };
 
   try {
-    const access = await authorize("importGuestEntries");
+    const access = await authorize("importGuestEntries", { limit: "bulkSend" });
     if (!access.ok) {
       return { ok: false, error: access.error === "notAllowed" ? "notOwner" : access.error };
     }

@@ -4,6 +4,14 @@ import type { PlatformRole } from "@/lib/roles";
 import { hasAuthCookie, supabaseConfig } from "./config";
 import type { Database } from "./types";
 
+/** Who is logged in, and how (see `CurrentUser.assuranceLevel`). */
+export interface SessionInfo {
+  userId: string | null;
+  platformRole: PlatformRole | null;
+  /** "aal2" once the authenticator code was entered; `null` for a guest. */
+  assuranceLevel: "aal1" | "aal2" | null;
+}
+
 /**
  * Refreshes the login session in the proxy (Part F2, step 1) and tells
  * who is logged in.
@@ -20,9 +28,9 @@ export async function refreshSession(
   request: NextRequest,
   response: NextResponse,
   options: { withPlatformRole?: boolean } = {},
-): Promise<{ userId: string | null; platformRole: PlatformRole | null }> {
+): Promise<SessionInfo> {
   // Guests have no login cookie: skip the network call, keep calculators fast.
-  if (!hasAuthCookie(request.cookies.getAll())) return { userId: null, platformRole: null };
+  if (!hasAuthCookie(request.cookies.getAll())) return { userId: null, platformRole: null, assuranceLevel: null };
 
   const { url, publishableKey } = supabaseConfig();
   const supabase = createServerClient<Database>(url, publishableKey, {
@@ -44,7 +52,8 @@ export async function refreshSession(
   // getClaims() checks the token signature; never trust getSession() here.
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims?.sub ?? null;
-  if (!userId || !options.withPlatformRole) return { userId, platformRole: null };
+  const assuranceLevel = data?.claims?.aal === "aal2" ? "aal2" : "aal1";
+  if (!userId || !options.withPlatformRole) return { userId, platformRole: null, assuranceLevel };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -52,7 +61,7 @@ export async function refreshSession(
     .eq("id", userId)
     .maybeSingle();
   // A blocked account is an ordinary user.
-  return { userId, platformRole: profile?.status === "active" ? profile.platform_role : "user" };
+  return { userId, platformRole: profile?.status === "active" ? profile.platform_role : "user", assuranceLevel };
 }
 
 /** Moves refreshed session cookies and cache headers onto another response (e.g. a redirect). */

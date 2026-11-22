@@ -5,7 +5,11 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { publicRoutes } from "@/config/site";
+import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+
+const LEGAL_LINK_CLASS = "font-medium text-primary underline underline-offset-4";
 
 export async function generateMetadata({
   params,
@@ -42,6 +46,21 @@ export default async function LoginPage() {
       <p className="mt-6 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
         <LockKeyholeIcon aria-hidden="true" className="size-4 shrink-0" />
         {t("privacy")}
+      </p>
+
+      <p className="mt-3 text-center text-sm text-muted-foreground">
+        {t.rich("agree", {
+          terms: (text) => (
+            <Link href={publicRoutes.terms} className={LEGAL_LINK_CLASS}>
+              {text}
+            </Link>
+          ),
+          privacy: (text) => (
+            <Link href={publicRoutes.privacy} className={LEGAL_LINK_CLASS}>
+              {text}
+            </Link>
+          ),
+        })}
       </p>
     </div>
   );

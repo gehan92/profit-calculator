@@ -180,7 +180,13 @@ function QuickAddRow({ category, entryDate }: { category: HiddenCostCategory; en
         toast.success(t("costAdded", { category: tCategory(category) }));
         // The page refreshes with the new totals and this checklist goes away.
       } else {
-        toast.error(result.error === "notAllowed" ? tAddEntry("notAllowed") : tAddEntry("saveFailed"));
+        toast.error(
+          result.error === "notAllowed"
+            ? tAddEntry("notAllowed")
+            : result.error === "tooMany"
+              ? tEntry("tooMany")
+              : tAddEntry("saveFailed"),
+        );
       }
     } catch {
       toast.error(tAddEntry("saveFailed"));

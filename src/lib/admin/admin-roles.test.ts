@@ -34,7 +34,7 @@ describe("admin permissions (Part B2)", () => {
 });
 
 describe("canOpenAdminPath: the Part F2 routes table", () => {
-  const paths = ["/admin", "/admin/users", "/admin/users/abc-123", "/admin/feedback", "/admin/audit", "/admin/settings", "/admin/content", "/admin/nope"];
+  const paths = ["/admin", "/admin/users", "/admin/users/abc-123", "/admin/feedback", "/admin/audit", "/admin/settings", "/admin/security", "/admin/content", "/admin/nope"];
 
   it("Admin may open everything (an unknown page is then Next.js's own 404)", () => {
     for (const path of paths) expect(canOpenAdminPath("admin", path)).toBe(true);
@@ -44,9 +44,9 @@ describe("canOpenAdminPath: the Part F2 routes table", () => {
     for (const path of paths) expect(canOpenAdminPath("user", path)).toBe(false);
   });
 
-  it("Support: /admin (which leads to Users), Users, one user and Feedback; 404 for the rest", () => {
+  it("Support: /admin (which leads to Users), Users, one user, Feedback and Security (two-step login); 404 for the rest", () => {
     const allowed = paths.filter((path) => canOpenAdminPath("support", path));
-    expect(allowed).toEqual(["/admin", "/admin/users", "/admin/users/abc-123", "/admin/feedback"]);
+    expect(allowed).toEqual(["/admin", "/admin/users", "/admin/users/abc-123", "/admin/feedback", "/admin/security"]);
   });
 
   it("ignores a trailing slash and does not confuse similar names", () => {
@@ -66,8 +66,8 @@ describe("landing and menu", () => {
 
   it("builds each role's sidebar from the permissions", () => {
     const menu = (role: PlatformRole) => ADMIN_NAV.filter((item) => canAdmin(role, item.permission)).map((item) => item.label);
-    expect(menu("admin")).toEqual(["Dashboard", "Users", "Feedback", "Audit log", "Settings"]);
-    expect(menu("support")).toEqual(["Users", "Feedback"]);
+    expect(menu("admin")).toEqual(["Dashboard", "Users", "Feedback", "Audit log", "Settings", "Security"]);
+    expect(menu("support")).toEqual(["Users", "Feedback", "Security"]);
     expect(menu("user")).toEqual([]);
   });
 

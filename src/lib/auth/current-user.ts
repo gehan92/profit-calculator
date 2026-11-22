@@ -9,6 +9,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export interface CurrentUser {
   id: string;
   email: string | null;
+  /** "aal2" when the person also entered their authenticator code (two-step login), else "aal1". */
+  assuranceLevel: "aal1" | "aal2";
 }
 
 /**
@@ -34,5 +36,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   return {
     id: claims.sub,
     email: typeof claims.email === "string" ? claims.email : null,
+    assuranceLevel: claims.aal === "aal2" ? "aal2" : "aal1",
   };
 });

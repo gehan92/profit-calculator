@@ -99,8 +99,20 @@ npm run db:push
 npm run db:types
 ```
 
-After your first login, make yourself admin in the Supabase SQL editor and turn on MFA:
+After your first login, make yourself admin in the Supabase SQL editor:
 
 ```sql
 update profiles set platform_role = 'admin' where id = '<your-user-id>';
 ```
+
+Then open `/admin`. Admin and Support must use **two-step login**: the first time, the
+site shows a QR code for an authenticator app (Google Authenticator, Microsoft
+Authenticator, ...); after that it asks for the 6-digit code at every login. Until the
+code is entered, only `/admin/security` opens. MFA (TOTP) must be on in Supabase
+(Authentication → Sign In / Providers). If you lose your phone, remove the factor of
+that user in the Supabase dashboard (Authentication → Users) and set it up again.
+
+## Testing with people
+
+`docs/day-13-testing-guide.md` is the script for testing with shop owners and with
+Sinhala / Tamil readers.
