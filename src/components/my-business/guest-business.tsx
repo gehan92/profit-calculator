@@ -75,7 +75,7 @@ export function GuestBusiness() {
     <div className="space-y-6">
       <PhoneOnlyBanner />
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <TodaySummary
             today={book.forDay(today)}
@@ -188,7 +188,7 @@ function GuestBusinessSkeleton() {
   return (
     <div className="space-y-6" aria-hidden="true">
       <Skeleton className="h-20 w-full rounded-2xl" />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <Skeleton className="h-60 w-full rounded-2xl" />
           <Skeleton className="h-96 w-full rounded-2xl" />

@@ -59,7 +59,8 @@ grant execute on function my_sessions() to authenticated;
 -- ===== PROFILE PHOTO (Storage bucket "avatars") ===============================
 -- One small picture per person, stored under their own id: avatars/<user id>/<random>.webp.
 -- The app uploads each new picture under a new random name and removes the old one, so
--- a picture's address cannot be guessed and an old address stops working. A person can
+-- a picture's address cannot be guessed and a removed file is gone (Supabase's public
+-- cache may keep showing a removed picture for a while, up to about an hour). A person can
 -- list only their own folder. Only the owner of the folder can add, replace or remove
 -- files in it, and only a small image (500 KB, webp / jpeg / png).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

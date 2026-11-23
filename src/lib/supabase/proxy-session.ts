@@ -3,6 +3,7 @@ import type { NextRequest, NextResponse } from "next/server";
 import type { PlatformRole } from "@/lib/roles";
 import { hasAuthCookie, supabaseConfig } from "./config";
 import type { Database } from "./types";
+import { forwardUserAgent } from "./user-agent";
 
 /** Who is logged in, and how (see `CurrentUser.assuranceLevel`). */
 export interface SessionInfo {
@@ -34,6 +35,8 @@ export async function refreshSession(
 
   const { url, publishableKey } = supabaseConfig();
   const supabase = createServerClient<Database>(url, publishableKey, {
+    // A refresh made here is recorded as the person's own device, not as our server.
+    global: { headers: forwardUserAgent(request.headers.get("user-agent")) },
     cookies: {
       getAll() {
         return request.cookies.getAll();

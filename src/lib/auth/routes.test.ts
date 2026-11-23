@@ -41,8 +41,13 @@ describe("isProtectedPath (Part C1: not logged in → login)", () => {
     expect(isProtectedPath("/welcome")).toBe(true);
   });
 
+  it("protects the Account page and its sections", () => {
+    expect(isProtectedPath("/account")).toBe(true);
+    expect(isProtectedPath("/account/anything")).toBe(true);
+  });
+
   it("leaves public pages open", () => {
-    for (const path of ["/", "/profit-calculator", "/try", "/login", "/signup", "/dashboards", "/welcomes"]) {
+    for (const path of ["/", "/profit-calculator", "/try", "/login", "/signup", "/dashboards", "/welcomes", "/accounts", "/account-deleted"]) {
       expect(isProtectedPath(path)).toBe(false);
     }
   });

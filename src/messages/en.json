@@ -69,7 +69,8 @@
     "logout": "Log out",
     "settings": "Settings",
     "admin": "Admin panel",
-    "feedback": "Send feedback"
+    "feedback": "Send feedback",
+    "account": "Your account"
   },
   "roleBadge": {
     "staff": "Staff",
@@ -248,7 +249,9 @@
     "categoriesTitle": "Categories",
     "categoriesBody": "Choose the kinds of money in and out that you record.",
     "productsTitle": "Products",
-    "productsBody": "Cost, price and margin for what you sell or buy."
+    "productsBody": "Cost, price and margin for what you sell or buy.",
+    "accountPageLink": "Open my account page",
+    "accountPageHint": "Your name, photo, login, devices, privacy, plan and notifications."
   },
   "accountDeleted": {
     "title": "Your account is deleted",
@@ -1005,5 +1008,131 @@
     "offline": "You are offline. Try again when you are back online.",
     "notAllowed": "Only the shop owner can change products.",
     "notFound": "This product was already changed. Please reload the page."
+  },
+  "accountPage": {
+    "title": "Your account",
+    "subtitle": "Your own details. Your shop's name and settings are in Settings.",
+    "back": "Back to my business",
+    "tabsLabel": "Account sections",
+    "tabs": {
+      "profile": "Profile",
+      "security": "Login & security",
+      "language": "Language & region",
+      "plan": "Plan & billing",
+      "privacy": "Privacy & data",
+      "notifications": "Notifications"
+    },
+    "common": {
+      "offline": "You are offline. Please try again when you are back online.",
+      "saved": "Saved",
+      "saveFailed": "Could not save. Please try again.",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    },
+    "profile": {
+      "photoTitle": "Profile photo",
+      "photoBody": "Optional. A small picture of you, seen only by you.",
+      "photoAlt": "Your photo",
+      "choosePhoto": "Choose a photo",
+      "changePhoto": "Change photo",
+      "removePhoto": "Remove photo",
+      "uploading": "Uploading…",
+      "photoSaved": "Photo saved",
+      "photoRemoved": "Photo removed",
+      "photoFailed": "Could not save the photo. Please try again.",
+      "photoUnreadable": "We could not read this picture. Please choose a JPG, PNG or WebP picture.",
+      "photoTooBig": "This picture is too large. Please choose one under 10 MB.",
+      "nameTitle": "Your name",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Kamala Perera",
+      "nameHelp": "Optional. Only you can see it.",
+      "nameTooLong": "Use 80 letters or fewer.",
+      "businessTitle": "Type of business",
+      "businessBody": "This decides which category suggestions you get. Changing it adds that type's categories; nothing is removed.",
+      "businessStaff": "The type of business is chosen by the shop's owner."
+    },
+    "security": {
+      "loginsTitle": "How you log in",
+      "loginsBody": "You can log in with any of these.",
+      "providers": {
+        "google": "Google",
+        "email": "Email link",
+        "phone": "Phone code"
+      },
+      "remove": "Remove",
+      "removeLoginLabel": "Remove {method} login",
+      "removeTitle": "Remove this login?",
+      "removeBody": "You will no longer be able to log in with {method}. You can add it again later.",
+      "removeConfirm": "Yes, remove it",
+      "loginRemoved": "Login removed",
+      "lastLogin": "This is your only login, so it cannot be removed.",
+      "onlyLogin": "This is your only way to log in, so it cannot be removed.",
+      "addGoogle": "Add Google login",
+      "addGoogleFailed": "Could not add Google. Please try again.",
+      "devicesTitle": "Devices that are logged in",
+      "devicesBody": "If you do not recognise a device, log out of all devices.",
+      "devicesUnavailable": "The list of devices is not available right now.",
+      "thisDevice": "This device",
+      "deviceLabel": "{browser} on {os}",
+      "deviceUnknown": "Unknown device",
+      "lastUsed": "Last used",
+      "logoutAllButton": "Log out of all devices",
+      "logoutAllConfirmTitle": "Log out of all devices?",
+      "logoutAllBody": "You will be logged out everywhere, including this device. Other devices are logged out within about an hour at the latest. You can log in again any time.",
+      "logoutAllConfirm": "Yes, log out everywhere",
+      "logoutAllFailed": "Could not log out. Please try again."
+    },
+    "language": {
+      "title": "Language and region",
+      "languageTitle": "Language",
+      "languageBody": "The language of the website for you.",
+      "dateTitle": "Date format",
+      "dateBody": "How dates are written in the files you download. Example: {example}",
+      "currencyTitle": "Currency for new shops",
+      "currencyBody": "Chosen for you when you create a shop. Your current shop keeps its own currency; change it in Settings.",
+      "currencyAsk": "Ask me each time"
+    },
+    "plan": {
+      "title": "Your plan",
+      "freeName": "Free plan",
+      "paidName": "Paid plan",
+      "freeBody": "Everything you need to record your money, use the calculators and keep up to 20 products.",
+      "renews": "Renews on",
+      "ends": "Ends on",
+      "trial": "Free trial until",
+      "pastDue": "Your last payment did not go through. Your plan works until",
+      "upgradeSoon": "Paid plans are coming soon.",
+      "historyTitle": "Billing history",
+      "historyEmpty": "No payments yet.",
+      "status": {
+        "paid": "Paid",
+        "failed": "Failed",
+        "refunded": "Refunded",
+        "partially_refunded": "Partly refunded"
+      },
+      "invoice": "Invoice"
+    },
+    "privacy": {
+      "accessLogTitle": "Who looked at my account",
+      "accessLogBody": "Each time our team opened your account (only possible while you allow it above), the time is listed here.",
+      "accessLogEmpty": "Nobody from our team has looked at your account.",
+      "dataTitle": "Download my data",
+      "dataBody": "Get a copy of everything we keep about you: your details, your shop, its records and your payments.",
+      "dataBodyMember": "Get a copy of your own details. The records of a shop belong to its owner.",
+      "downloadJson": "Download everything (JSON)",
+      "preparing": "Preparing…",
+      "downloaded": "File downloaded",
+      "downloadFailed": "Could not prepare the file. Please try again."
+    },
+    "notifications": {
+      "title": "Reminders and emails",
+      "body": "Choose what we may send you.",
+      "dailyLabel": "Daily reminder to add today's money",
+      "dailyTime": "Reminder time",
+      "weeklyLabel": "Weekly summary email",
+      "paymentsLabel": "Payment emails (receipts and failed payments)",
+      "note": "Your choices are saved now. Reminders and emails start once email sending is set up; you will not receive anything before then."
+    }
   }
 }

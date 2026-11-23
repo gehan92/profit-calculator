@@ -7,9 +7,11 @@ import { WelcomeForm } from "@/components/auth/welcome-form";
 import { SignupTracker } from "@/components/dashboard/signup-tracker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { routing } from "@/i18n/routing";
+import { ProfileRepository } from "@/lib/account/profile-repository";
 import { getDashboardContext } from "@/lib/auth/dashboard-access";
 import { dashboardPath } from "@/lib/auth/routes";
 import { businessTypeOrDefault } from "@/lib/business/business-types";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({
   params,
@@ -42,8 +44,10 @@ async function WelcomeContent({ params, searchParams }: PageProps<"/[locale]/wel
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
 
-  const { membership } = await getDashboardContext(locale);
+  const { user, membership } = await getDashboardContext(locale);
   if (membership.role !== "owner") redirect(dashboardPath(locale));
+  // The currency the person chose on their Account page (Language & region) comes pre-selected.
+  const { defaultCurrency } = await new ProfileRepository(await createSupabaseServerClient()).getAccountProfile(user.id);
 
   const [t, defaultNames, query] = await Promise.all([
     getTranslations("welcome"),
@@ -69,7 +73,7 @@ async function WelcomeContent({ params, searchParams }: PageProps<"/[locale]/wel
           initial={{
             name,
             businessType: businessTypeOrDefault(business.business_type),
-            currency: business.currency,
+            currency: defaultCurrency ?? business.currency,
           }}
         />
       </div>

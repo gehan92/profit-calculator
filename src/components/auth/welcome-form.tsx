@@ -120,7 +120,7 @@ export function WelcomeForm({ initial }: WelcomeFormProps) {
 
       <fieldset className="space-y-2">
         <legend className="mb-2 text-base font-medium">{t("businessTypeLegend")}</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {BUSINESS_TYPES.map((type) => {
             const Icon = TYPE_ICONS[type];
             return (

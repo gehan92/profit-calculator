@@ -3,6 +3,8 @@
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { LOCALES } from "@/i18n/config";
+import { removeAvatarFiles } from "@/lib/account/avatar-storage";
+import { formatDateAs } from "@/lib/account/profile";
 import { ProfileRepository } from "@/lib/account/profile-repository";
 import { isDeleteConfirmed } from "@/lib/account/delete-confirmation";
 import { supportAccessEnd } from "@/lib/account/support-access";
@@ -49,12 +51,16 @@ export async function exportCsv(locale: string): Promise<ExportCsvResult> {
     );
     if (entries.length === 0) return { ok: false, error: "empty" };
 
-    const [tColumns, tEntry, tCategory, shop] = await Promise.all([
+    const user = await getCurrentUser();
+    const [tColumns, tEntry, tCategory, shop, profile] = await Promise.all([
       getTranslations({ locale: parsedLocale.data, namespace: "settings.csvColumns" }),
       getTranslations({ locale: parsedLocale.data, namespace: "entry" }),
       getTranslations({ locale: parsedLocale.data, namespace: "categories" }),
       loadShopCatalog(access.supabase, access.membership.business.id),
+      // The date format the person chose on the Account page (default: 2026-11-23).
+      user ? new ProfileRepository(access.supabase).getAccountProfile(user.id) : null,
     ]);
+    const dateFormat = profile?.dateFormat ?? "ymd";
     // The shop's own names for categories and products, so the file reads like the screens.
     const catalog = new CategoryCatalog(shop.categories, (key) => categoryNameOf(tCategory, key));
     const productNames = new Map(shop.products.map((product) => [product.id, product.name]));
@@ -70,6 +76,7 @@ export async function exportCsv(locale: string): Promise<ExportCsvResult> {
         note: tColumns("note"),
         addedAt: tColumns("addedAt"),
       },
+      date: (isoDate) => formatDateAs(isoDate, dateFormat),
       type: (type) => tEntry(type),
       category: (entry) => catalog.label(entry.category, entry.type),
       product: (entry) => (entry.productId ? (productNames.get(entry.productId) ?? "") : ""),
@@ -157,7 +164,12 @@ export async function deleteAccount(confirmation: string): Promise<DeleteAccount
   if (!user) return { ok: false, error: "notLoggedIn" };
 
   try {
-    const { error } = await createSupabaseAdminClient().auth.admin.deleteUser(user.id);
+    const admin = createSupabaseAdminClient();
+    // The profile photo files are not tied to the login, so they would stay behind: remove them
+    // first. If that fails nothing is deleted yet, and the person can simply try again.
+    await removeAvatarFiles(admin, user.id);
+
+    const { error } = await admin.auth.admin.deleteUser(user.id);
     if (error) return { ok: false, error: "failed" };
 
     // The login no longer exists; remove its cookies from this browser.

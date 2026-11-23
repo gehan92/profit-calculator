@@ -15,6 +15,8 @@ export interface EntryCsvLabels {
     note: string;
     addedAt: string;
   };
+  /** How the Date column is written, e.g. "2026-11-23" or "23/11/2026" (the person's choice on the Account page). */
+  date: (isoDate: string) => string;
   type: (type: EntryType) => string;
   /** The name of an entry's category (its own name, or the translated default). */
   category: (entry: StoredEntry) => string;
@@ -48,7 +50,7 @@ export function buildEntriesCsv(
 
   for (const entry of entries) {
     csv.addRow([
-      entry.entryDate,
+      labels.date(entry.entryDate),
       labels.type(entry.type),
       labels.category(entry),
       labels.product(entry),

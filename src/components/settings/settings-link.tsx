@@ -1,15 +1,16 @@
 import { ChevronRightIcon, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import type { ACCOUNT_PATH } from "@/lib/account/tabs";
 import type { DashboardRoute } from "@/lib/roles";
 
-/** A tile on Settings that opens one of the shop's lists (Categories, Products). */
+/** A tile on Settings that opens one of the shop's lists (Categories, Products) or the Account page. */
 export function SettingsLink({
   href,
   icon: Icon,
   title,
   body,
 }: {
-  href: DashboardRoute;
+  href: DashboardRoute | typeof ACCOUNT_PATH;
   icon: LucideIcon;
   title: string;
   body: string;

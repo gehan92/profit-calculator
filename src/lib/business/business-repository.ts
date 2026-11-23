@@ -110,6 +110,22 @@ export class BusinessRepository {
   }
 
   /**
+   * Account → Profile → type of business. Choosing a type makes the database
+   * add that type's default categories (migration 0007); nothing is removed.
+   * RLS allows this only for the Owner.
+   */
+  async setBusinessType(businessId: string, businessType: BusinessType): Promise<void> {
+    const { data, error } = await this.db
+      .from("businesses")
+      .update({ business_type: businessType })
+      .eq("id", businessId)
+      .select("id");
+
+    if (error) throw new BusinessQueryError("save the business type", error);
+    if (data.length === 0) throw new BusinessQueryError("save the business type", { message: "not the owner" });
+  }
+
+  /**
    * First-time shop setup (Part C1.7): name, business type, currency and
    * language. Choosing a business type makes the database add that type's
    * default categories (migration 0007). RLS allows this only for the Owner.

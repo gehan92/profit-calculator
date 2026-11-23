@@ -174,7 +174,7 @@ export function ProLimitsSection({ initial }: { initial: AppSettings["pro_limits
   return (
     <Panel title="Pro limits" description="How many people a Pro shop can invite.">
       <form onSubmit={submit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <NumberBox id={staffId} label="Staff per shop" value={staff} onChange={setStaff} />
           <NumberBox id={viewersId} label="Viewers per shop" value={viewers} onChange={setViewers} />
         </div>
@@ -213,7 +213,7 @@ export function DefaultsSection({ initial }: { initial: AppSettings["defaults"] 
   return (
     <Panel title="Defaults for new shops" description="What a shop starts with the first time its owner logs in.">
       <form onSubmit={submit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor={localeId} className="text-base font-medium">
               Language

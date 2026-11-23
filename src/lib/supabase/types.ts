@@ -684,10 +684,16 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          date_format: string
+          default_currency: string | null
           full_name: string | null
           id: string
           last_active_at: string | null
           locale: string | null
+          notify_daily: boolean
+          notify_daily_time: string
+          notify_payments: boolean
+          notify_weekly: boolean
           platform_role: Database["public"]["Enums"]["platform_role"]
           status: string
           support_access_until: string | null
@@ -696,10 +702,16 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          date_format?: string
+          default_currency?: string | null
           full_name?: string | null
           id: string
           last_active_at?: string | null
           locale?: string | null
+          notify_daily?: boolean
+          notify_daily_time?: string
+          notify_payments?: boolean
+          notify_weekly?: boolean
           platform_role?: Database["public"]["Enums"]["platform_role"]
           status?: string
           support_access_until?: string | null
@@ -708,10 +720,16 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          date_format?: string
+          default_currency?: string | null
           full_name?: string | null
           id?: string
           last_active_at?: string | null
           locale?: string | null
+          notify_daily?: boolean
+          notify_daily_time?: string
+          notify_payments?: boolean
+          notify_weekly?: boolean
           platform_role?: Database["public"]["Enums"]["platform_role"]
           status?: string
           support_access_until?: string | null
@@ -864,6 +882,16 @@ export type Database = {
       my_role: {
         Args: { b: string }
         Returns: Database["public"]["Enums"]["member_role"]
+      }
+      my_sessions: {
+        Args: never
+        Returns: {
+          created_at: string
+          is_current: boolean
+          last_seen_at: string
+          session_id: string
+          user_agent: string
+        }[]
       }
       plan_available: { Args: { p_code: string }; Returns: boolean }
       plan_spots_left: { Args: { p_code: string }; Returns: number }

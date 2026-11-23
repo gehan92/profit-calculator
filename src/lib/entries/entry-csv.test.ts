@@ -14,6 +14,7 @@ const labels: EntryCsvLabels = {
     note: "Note",
     addedAt: "Added at (UTC)",
   },
+  date: (isoDate) => isoDate,
   type: (type) => (type === "income" ? "Income" : "Expense"),
   category: (entry) => (entry.category === "sales" ? "Sales" : entry.category === "stock" ? "Stock" : entry.category),
   product: (entry) => (entry.productId === "p1" ? "Cream biscuits" : ""),
@@ -62,6 +63,15 @@ describe("buildEntriesCsv", () => {
   it("writes the product name and the quantity (a plain number) when an entry has them", () => {
     const lines = buildEntriesCsv([entry({ productId: "p1", quantity: 2.5 })], "LKR", labels).replace("﻿", "").split("\r\n");
     expect(lines[1]).toBe("2026-11-15,Income,Sales,Cream biscuits,2.5,25000.00,LKR,,2026-11-15T09:00:00.000Z");
+  });
+
+  it("writes the Date column the way the person chose (Account → Language & region)", () => {
+    const dayFirst: EntryCsvLabels = {
+      ...labels,
+      date: (isoDate) => isoDate.split("-").reverse().join("/"),
+    };
+    const lines = buildEntriesCsv([entry({})], "LKR", dayFirst).replace("﻿", "").split("\r\n");
+    expect(lines[1]).toBe("15/11/2026,Income,Sales,,,25000.00,LKR,,2026-11-15T09:00:00.000Z");
   });
 
   it("only has the heading row when there are no entries", () => {

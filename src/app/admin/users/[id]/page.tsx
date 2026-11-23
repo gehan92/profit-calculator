@@ -76,7 +76,7 @@ async function UserDetailContent({ params }: Pick<PageProps<"/admin/users/[id]">
 
       <div className="space-y-4">
         <Panel title="Account">
-          <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
             <Fact label="User ID" value={user.id} />
             <Fact label="Email" value={user.emailMasked ?? "—"} />
             <Fact label="Phone" value={user.phoneMasked ?? "—"} />
@@ -95,7 +95,7 @@ async function UserDetailContent({ params }: Pick<PageProps<"/admin/users/[id]">
         </Panel>
 
         <Panel title="Counts" description="Numbers only. A shop's name and records are private to the shop.">
-          <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
             <Fact label="Shops owned" value={formatCount(user.shopsCount)} />
             <Fact label="Shops joined as Staff or Viewer" value={formatCount(user.membershipsCount)} />
             <Fact label="Entries in their shops" value={formatCount(user.entriesCount)} />

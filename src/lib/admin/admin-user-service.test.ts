@@ -9,6 +9,9 @@ interface FakeOptions {
   updatedRows?: number;
   deleteFails?: boolean;
   auditFails?: boolean;
+  /** Profile photo files in Storage, by folder (the user's id). */
+  photos?: Record<string, string[]>;
+  photoRemoveFails?: boolean;
 }
 
 /** A fake Supabase secret-key client that remembers what was done to it. */
@@ -19,7 +22,14 @@ function fakeAdmin(options: FakeOptions = {}) {
     "admin-1": { id: "admin-1", full_name: "Me", platform_role: "admin" },
   };
   const emails = options.emails ?? { "user-1": "kamala@example.com", "admin-2": "other@example.com", "admin-1": "me@example.com" };
-  const done = { updates: [] as unknown[], deleted: [] as string[], audit: [] as Record<string, unknown>[] };
+  const done = {
+    updates: [] as unknown[],
+    deleted: [] as string[],
+    audit: [] as Record<string, unknown>[],
+    /** Photo files removed, in the order they were removed, and what order the delete came in. */
+    removedPhotos: [] as string[],
+    order: [] as string[],
+  };
 
   const db = {
     from: (table: string) => {
@@ -45,12 +55,27 @@ function fakeAdmin(options: FakeOptions = {}) {
         }),
       };
     },
+    storage: {
+      from: (bucket: string) => ({
+        list: async (folder: string) => {
+          expect(bucket).toBe("avatars");
+          return { data: (options.photos?.[folder] ?? []).map((name) => ({ name })), error: null };
+        },
+        remove: async (paths: string[]) => {
+          if (options.photoRemoveFails) return { data: null, error: { message: "boom" } };
+          done.removedPhotos.push(...paths);
+          done.order.push("photos");
+          return { data: [], error: null };
+        },
+      }),
+    },
     auth: {
       admin: {
         getUserById: async (id: string) => ({ data: { user: emails[id] === undefined ? null : { email: emails[id] } } }),
         deleteUser: async (id: string) => {
           if (options.deleteFails) return { error: { message: "boom" } };
           done.deleted.push(id);
+          done.order.push("login");
           return { error: null };
         },
       },
@@ -146,6 +171,22 @@ describe("AdminUserService.deleteUser", () => {
   it("reports a failed delete without writing a log row", async () => {
     const { db, done } = fakeAdmin({ deleteFails: true });
     expect(await new AdminUserService(db, actor).deleteUser("user-1", "kamala@example.com")).toEqual({ ok: false, error: "failed" });
+    expect(done.audit).toEqual([]);
+  });
+
+  it("removes the user's profile photos first, because they are not tied to the login", async () => {
+    const { db, done } = fakeAdmin({ photos: { "user-1": ["a.webp", "b.webp"], "admin-2": ["never.webp"] } });
+    const result = await new AdminUserService(db, actor).deleteUser("user-1", "kamala@example.com");
+
+    expect(result).toEqual({ ok: true, auditSaved: true });
+    expect(done.removedPhotos).toEqual(["user-1/a.webp", "user-1/b.webp"]);
+    expect(done.order).toEqual(["photos", "login"]);
+  });
+
+  it("deletes nothing when the photos cannot be removed (the Admin can try again)", async () => {
+    const { db, done } = fakeAdmin({ photos: { "user-1": ["a.webp"] }, photoRemoveFails: true });
+    expect(await new AdminUserService(db, actor).deleteUser("user-1", "kamala@example.com")).toEqual({ ok: false, error: "failed" });
+    expect(done.deleted).toEqual([]);
     expect(done.audit).toEqual([]);
   });
 });

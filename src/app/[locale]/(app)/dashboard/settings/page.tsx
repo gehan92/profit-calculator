@@ -1,24 +1,20 @@
-import { LogOutIcon, PackageIcon, TagsIcon } from "lucide-react";
+import { LogOutIcon, PackageIcon, TagsIcon, UserCogIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { LogoutForm } from "@/components/auth/logout-form";
-import { DeleteAccountCard } from "@/components/settings/delete-account-card";
 import { ExportCard } from "@/components/settings/export-card";
 import { SettingsCard } from "@/components/settings/settings-card";
 import { SettingsLink } from "@/components/settings/settings-link";
 import { ShopSettingsForm } from "@/components/settings/shop-settings-form";
-import { SupportAccessCard } from "@/components/settings/support-access-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { routing } from "@/i18n/routing";
-import { ProfileRepository } from "@/lib/account/profile-repository";
-import { isSupportAccessActive } from "@/lib/account/support-access";
+import { ACCOUNT_PATH } from "@/lib/account/tabs";
 import { requireDashboardPage } from "@/lib/auth/dashboard-access";
 import { dashboardRoutes } from "@/lib/roles";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({
   params,
@@ -31,9 +27,10 @@ export async function generateMetadata({
 }
 
 /**
- * /[locale]/dashboard/settings — Settings (Part D2): shop name, language and
- * currency, download the records as CSV, the support-access switch, log out
- * and delete the account. Owner only.
+ * /[locale]/dashboard/settings — Settings (Part D2): the shop's name, language
+ * and currency, its categories and products, the CSV download, and log out.
+ * Owner only. The person's own details (support access, their data, deleting
+ * the account, plan, login) are on the Account page (spec D6), open to every role.
  */
 export default function SettingsPage({ params }: PageProps<"/[locale]/dashboard/settings">) {
   return (
@@ -55,10 +52,6 @@ async function SettingsContent({ params }: Pick<PageProps<"/[locale]/dashboard/s
     getTranslations({ locale, namespace: "account" }),
   ]);
 
-  const supportUntil = await new ProfileRepository(await createSupabaseServerClient()).getSupportAccessUntil(
-    user.id,
-  );
-
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
@@ -70,7 +63,7 @@ async function SettingsContent({ params }: Pick<PageProps<"/[locale]/dashboard/s
       </SettingsCard>
 
       {/* The shop's own lists (Part D8, D9). */}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <SettingsLink
           href={dashboardRoutes.categories}
           icon={TagsIcon}
@@ -89,10 +82,6 @@ async function SettingsContent({ params }: Pick<PageProps<"/[locale]/dashboard/s
         <ExportCard />
       </SettingsCard>
 
-      <SettingsCard id="support" title={t("supportTitle")} description={t("supportBody")}>
-        <SupportAccessCard initialUntil={isSupportAccessActive(supportUntil) ? supportUntil : null} />
-      </SettingsCard>
-
       <SettingsCard id="account" title={t("accountTitle")}>
         {user.email && (
           <p className="text-sm">
@@ -100,6 +89,7 @@ async function SettingsContent({ params }: Pick<PageProps<"/[locale]/dashboard/s
             <span className="block font-medium break-all">{user.email}</span>
           </p>
         )}
+        <SettingsLink href={ACCOUNT_PATH} icon={UserCogIcon} title={t("accountPageLink")} body={t("accountPageHint")} />
         {/* A real form: logging out works even before the page's JavaScript has loaded. */}
         <LogoutForm locale={locale}>
           <Button type="submit" variant="outline" className="h-12 w-full bg-background text-base sm:w-auto sm:px-6">
@@ -107,10 +97,6 @@ async function SettingsContent({ params }: Pick<PageProps<"/[locale]/dashboard/s
             {tAccount("logout")}
           </Button>
         </LogoutForm>
-      </SettingsCard>
-
-      <SettingsCard id="danger" title={t("dangerTitle")} description={t("dangerBody")} danger>
-        <DeleteAccountCard />
       </SettingsCard>
     </div>
   );

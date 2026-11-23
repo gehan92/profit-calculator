@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PlatformRole } from "@/lib/roles";
+import { removeAvatarFiles } from "@/lib/account/avatar-storage";
 import type { Database } from "@/lib/supabase/types";
 import { AuditLog } from "./audit-log";
 import { maskEmail } from "./mask";
@@ -65,7 +66,8 @@ export class AdminUserService {
 
   /**
    * Deletes the login and, through the database's cascade rules, the profile,
-   * shops, members and entries (Part F3 schema notes, migration 0002). The
+   * shops, members and entries (Part F3 schema notes, migration 0002), plus the
+   * profile photo files in Storage (they are not tied to the login). The
    * Admin must type the user's email exactly (Part C1.6).
    */
   async deleteUser(targetId: string, typedEmail: string): Promise<UserActionResult> {
@@ -74,6 +76,14 @@ export class AdminUserService {
     const refusal = refuseUserAction(this.actor.id, target);
     if (refusal) return { ok: false, error: refusal };
     if (!target.email || !matchesTyped(typedEmail, target.email)) return { ok: false, error: "emailMismatch" };
+
+    // Profile photos are not tied to the login, so they would stay behind: remove them first.
+    // If that fails nothing is deleted yet and the Admin can simply try again.
+    try {
+      await removeAvatarFiles(this.admin, targetId);
+    } catch {
+      return { ok: false, error: "failed" };
+    }
 
     const { error } = await this.admin.auth.admin.deleteUser(targetId);
     if (error) return { ok: false, error: "failed" };

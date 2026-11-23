@@ -6,6 +6,7 @@ import {
   MessageSquareIcon,
   SettingsIcon,
   ShieldCheckIcon,
+  UserCogIcon,
   UserRoundIcon,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -22,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "@/i18n/navigation";
+import { ACCOUNT_PATH } from "@/lib/account/tabs";
 import { adminRoutes } from "@/lib/admin/admin-roles";
 import { dashboardRoutes } from "@/lib/roles";
 
@@ -29,8 +31,8 @@ const LOGOUT_FORM_ID = "logout-form";
 
 /**
  * The avatar menu in the dashboard header (Part C1.2): who is logged in,
- * Settings (Owner), the Admin panel (Support and Admin), the free calculators,
- * Send feedback and Log out.
+ * Your account, Settings (Owner), the Admin panel (Support and Admin), the
+ * free calculators, Send feedback and Log out.
  */
 export function AccountMenu({
   email,
@@ -70,6 +72,13 @@ export function AccountMenu({
               <DropdownMenuSeparator />
             </>
           )}
+          {/* Every logged-in person has an Account page, whatever their role (spec D6). */}
+          <DropdownMenuItem asChild className="min-h-11">
+            <Link href={ACCOUNT_PATH}>
+              <UserCogIcon aria-hidden="true" />
+              {t("account")}
+            </Link>
+          </DropdownMenuItem>
           {showSettings && (
             <DropdownMenuItem asChild className="min-h-11">
               <Link href={dashboardRoutes.settings}>

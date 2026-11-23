@@ -12,6 +12,8 @@ export const authRoutes = {
   /** First-time shop setup, shown once after the first login (Part C1.7). */
   welcome: "/welcome",
   dashboard: "/dashboard",
+  /** The Account page (spec D6): every logged-in person has one, whatever their role. */
+  account: "/account",
   /** Guest "My Business (try)"; logged-in people use the dashboard instead. */
   tryMyBusiness: publicRoutes.tryMyBusiness,
   /** Outside `[locale]`: Supabase sends people back here after Google or the email link. */
@@ -19,7 +21,7 @@ export const authRoutes = {
 } as const;
 
 /** Pages that need a logged-in user. Everyone else sees them only after logging in. */
-const PROTECTED_PREFIXES = [authRoutes.dashboard, authRoutes.welcome] as const;
+const PROTECTED_PREFIXES = [authRoutes.dashboard, authRoutes.welcome, authRoutes.account] as const;
 
 /** "/si/dashboard/add" → { locale: "si", path: "/dashboard/add" }; "/about" → { locale: null, path: "/about" }. */
 export function splitLocale(pathname: string): { locale: AppLocale | null; path: string } {
