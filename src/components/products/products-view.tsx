@@ -163,6 +163,8 @@ function ProductRow({ product, onSelect }: { product: Product; onSelect: () => v
 
   const health = marginHealth(product);
   const { marginPct } = productMargin(product);
+  const badgeText = health === "unknown" ? t("noPrice") : health === "loss" ? t("loss") : t("margin", { percent: percent(marginPct ?? 0) });
+  const badgeClass = cn("money rounded-full px-2.5 py-1 text-xs font-semibold sm:text-sm", HEALTH_CLASS[health]);
 
   return (
     <button
@@ -179,20 +181,20 @@ function ProductRow({ product, onSelect }: { product: Product; onSelect: () => v
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="truncate font-medium">{product.name}</span>
+          <span className="line-clamp-2 min-w-0 font-medium wrap-anywhere">{product.name}</span>
           {product.archived && (
             <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {t("putAwayBadge")}
             </span>
           )}
         </span>
-        <span className="money block truncate text-sm text-muted-foreground">
+        {/* On a phone the cost and price wrap instead of being cut off, and the margin badge sits underneath. */}
+        <span className="money block text-sm text-muted-foreground">
           {t("cost", { amount: money(product.costCents) })} · {t("price", { amount: money(product.priceCents) })} / {tUnits(product.unit)}
         </span>
+        <span className={cn(badgeClass, "mt-1.5 inline-block sm:hidden")}>{badgeText}</span>
       </span>
-      <span className={cn("money shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold sm:text-sm", HEALTH_CLASS[health])}>
-        {health === "unknown" ? t("noPrice") : health === "loss" ? t("loss") : t("margin", { percent: percent(marginPct ?? 0) })}
-      </span>
+      <span className={cn(badgeClass, "hidden shrink-0 sm:inline-block")}>{badgeText}</span>
     </button>
   );
 }

@@ -36,7 +36,7 @@ export function SegmentedControl<Value extends string>({
   const hintId = hint ? `${name}-hint` : undefined;
 
   return (
-    <fieldset className="space-y-2" aria-describedby={hintId}>
+    <fieldset className="min-w-0 space-y-2" aria-describedby={hintId}>
       <legend className="mb-2 text-base font-medium">{legend}</legend>
 
       <div className="flex gap-1 rounded-xl bg-muted p-1">
@@ -44,7 +44,7 @@ export function SegmentedControl<Value extends string>({
           <label
             key={option.value}
             className={cn(
-              "flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg px-2 text-center text-sm leading-tight font-medium text-muted-foreground transition-colors",
+              "flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-lg px-2 text-center text-sm leading-tight font-medium wrap-anywhere text-muted-foreground transition-colors",
               "hover:text-foreground",
               "has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm",
               "has-focus-visible:ring-3 has-focus-visible:ring-ring/50",

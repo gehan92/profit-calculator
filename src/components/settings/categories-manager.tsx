@@ -69,7 +69,7 @@ export function CategoriesManager() {
             >
               <CategoryIcon icon={row.icon} color={row.color} />
               <span className="min-w-0 flex-1">
-                <span className={row.archived ? "block truncate font-medium text-muted-foreground" : "block truncate font-medium"}>
+                <span className={row.archived ? "line-clamp-2 block font-medium wrap-anywhere text-muted-foreground" : "line-clamp-2 block font-medium wrap-anywhere"}>
                   {row.label}
                 </span>
                 {(row.countsAs === "hidden_cost" || row.archived) && (

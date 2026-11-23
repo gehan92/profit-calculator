@@ -105,8 +105,8 @@ export function EntryList<Entry extends ListEntry>({
                     <div className="min-w-0 flex-1 text-left">
                       <p className="font-medium">{category}</p>
                       {product && entry.quantity ? (
-                        <p className="truncate text-sm text-muted-foreground">
-                          {product.name} × {formatQuantity(entry.quantity)} {tUnits(product.unit)}
+                        <p className="line-clamp-2 text-sm wrap-anywhere text-muted-foreground">
+                          {product.name} ×{formatQuantity(entry.quantity)} {tUnits(product.unit)}
                         </p>
                       ) : null}
                       {catalog.isHiddenCost(entry.category, entry.type) && (
