@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Category } from "@/config/categories";
+import { isCategoryId } from "@/lib/categories/category";
 import type { IsoDate } from "@/lib/dates";
 import type { Database, Tables, TablesInsert } from "@/lib/supabase/types";
 import type { ClientEntry, EntryFields, StoredEntry } from "./entry";
@@ -70,14 +70,34 @@ export const SUMMARY_MAX_PAGES = 50;
 /** The most pages one export reads (200 × 1,000 = 200,000 entries). */
 export const EXPORT_MAX_PAGES = 200;
 
-const SUMMARY_COLUMNS = "type, category, amount_cents, entry_date" as const;
+const SUMMARY_COLUMNS = "type, category, category_id, amount_cents, entry_date" as const;
 
 const LIST_COLUMNS =
-  "id, type, category, amount_cents, entry_date, note, created_at, client_id" as const;
+  "id, type, category, category_id, amount_cents, entry_date, note, created_at, client_id, product_id, quantity" as const;
 type ListRow = Pick<
   Tables<"entries">,
-  "id" | "type" | "category" | "amount_cents" | "entry_date" | "note" | "created_at" | "client_id"
+  | "id"
+  | "type"
+  | "category"
+  | "category_id"
+  | "amount_cents"
+  | "entry_date"
+  | "note"
+  | "created_at"
+  | "client_id"
+  | "product_id"
+  | "quantity"
 >;
+
+/**
+ * The columns that name an entry's category. An id goes into `category_id`; a
+ * default key into `category`, which the database turns into the shop's
+ * category (migration 0009). A key clears the id, so an edit never keeps a stale one;
+ * an id leaves the key alone (the database refreshes it).
+ */
+function categoryColumns(ref: string): { category?: string; category_id: string | null } {
+  return isCategoryId(ref) ? { category_id: ref } : { category: ref, category_id: null };
+}
 
 /**
  * Reads and writes income and expense entries (Part F3 `entries`).
@@ -122,7 +142,11 @@ export class EntryRepository {
       .gte("entry_date", from)
       .lt("entry_date", before);
     if (filters.type) query = query.eq("type", filters.type);
-    if (filters.category) query = query.eq("category", filters.category);
+    if (filters.category) {
+      query = isCategoryId(filters.category)
+        ? query.eq("category_id", filters.category)
+        : query.eq("category", filters.category);
+    }
 
     const { data, error } = await query
       .order("entry_date", { ascending: false })
@@ -163,7 +187,7 @@ export class EntryRepository {
       entries.push(
         ...data.map((row) => ({
           type: row.type,
-          category: row.category as Category,
+          category: row.category_id ?? row.category ?? "",
           amountCents: row.amount_cents,
           entryDate: row.entry_date,
         })),
@@ -221,10 +245,12 @@ export class EntryRepository {
     const { error } = await this.db.from("entries").insert({
       business_id: businessId,
       type: fields.type,
-      category: fields.category,
+      ...categoryColumns(fields.category),
       amount_cents: fields.amountCents,
       entry_date: fields.entryDate,
       note: fields.note,
+      product_id: fields.productId,
+      quantity: fields.quantity,
       client_id: clientId,
       ...(createdAt && { created_at: createdAt.toISOString() }),
     });
@@ -272,10 +298,12 @@ export class EntryRepository {
       .from("entries")
       .update({
         type: fields.type,
-        category: fields.category,
+        ...categoryColumns(fields.category),
         amount_cents: fields.amountCents,
         entry_date: fields.entryDate,
         note: fields.note,
+        product_id: fields.productId,
+        quantity: fields.quantity,
       })
       .eq("id", id)
       .select("id");
@@ -322,11 +350,13 @@ export class EntryRepository {
     return {
       id: row.id,
       type: row.type,
-      // Stored keys always come from config/categories.ts (checked on every write).
-      category: row.category as Category,
+      // The category's id (every entry has one since migration 0009), else the default key.
+      category: row.category_id ?? row.category ?? "",
       amountCents: row.amount_cents,
       entryDate: row.entry_date,
       note: row.note,
+      productId: row.product_id,
+      quantity: row.quantity,
       createdAt: row.created_at,
       clientId: row.client_id,
     };
@@ -344,10 +374,12 @@ export class EntryRepository {
     return {
       business_id: businessId,
       type: entry.type,
-      category: entry.category,
+      ...categoryColumns(entry.category),
       amount_cents: entry.amountCents,
       entry_date: entry.entryDate,
       note: entry.note,
+      product_id: entry.productId,
+      quantity: entry.quantity,
       client_id: entry.clientId,
       created_at: createdAt.toISOString(),
     };

@@ -1,4 +1,3 @@
-import type { Category } from "@/config/categories";
 import { CsvDocument } from "@/lib/csv";
 import { Money, type CurrencyCode } from "@/lib/money";
 import type { EntryType, StoredEntry } from "./entry";
@@ -9,19 +8,25 @@ export interface EntryCsvLabels {
     date: string;
     type: string;
     category: string;
+    product: string;
+    quantity: string;
     amount: string;
     currency: string;
     note: string;
     addedAt: string;
   };
   type: (type: EntryType) => string;
-  category: (category: Category) => string;
+  /** The name of an entry's category (its own name, or the translated default). */
+  category: (entry: StoredEntry) => string;
+  /** The name of an entry's product; empty when it has none. */
+  product: (entry: StoredEntry) => string;
 }
 
 /**
  * The records of a shop as a CSV file (Part D2 Settings "export CSV"):
- * one row per entry in the order given (oldest first), with a plain decimal
- * amount ("1500.50") that a spreadsheet reads as a number.
+ * one row per entry in the order given (oldest first), with the category and
+ * product names, the quantity, and a plain decimal amount ("1500.50") that a
+ * spreadsheet reads as a number.
  */
 export function buildEntriesCsv(
   entries: readonly StoredEntry[],
@@ -33,6 +38,8 @@ export function buildEntriesCsv(
     columns.date,
     columns.type,
     columns.category,
+    columns.product,
+    columns.quantity,
     columns.amount,
     columns.currency,
     columns.note,
@@ -43,7 +50,9 @@ export function buildEntriesCsv(
     csv.addRow([
       entry.entryDate,
       labels.type(entry.type),
-      labels.category(entry.category),
+      labels.category(entry),
+      labels.product(entry),
+      entry.quantity === null ? "" : CsvDocument.number(String(entry.quantity)),
       CsvDocument.number(Money.fromCents(entry.amountCents, currency).toDecimalString()),
       currency,
       entry.note ?? "",

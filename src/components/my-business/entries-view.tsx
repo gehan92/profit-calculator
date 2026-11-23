@@ -6,24 +6,19 @@ import { useMemo, useState } from "react";
 import { useCalcFormat } from "@/components/calculators/use-calc-format";
 import { useEntryDelete } from "@/components/dashboard/entry-delete-provider";
 import { useQueuedEntries } from "@/components/offline/use-queued-entries";
+import { useCategoryCatalog } from "@/components/shop-catalog-context";
+import type { CategoryCatalog } from "@/lib/categories/category";
 import { useDateLabels } from "@/components/use-date-labels";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { monthOf, shiftMonth } from "@/lib/dates";
 import { mergeQueuedEntries, type DisplayEntry } from "@/lib/entries/display-entry";
-import {
-  ALL_CATEGORIES,
-  CATEGORIES_BY_TYPE,
-  isCategoryOf,
-  type EntryType,
-  type StoredEntry,
-} from "@/lib/entries/entry";
+import { type EntryType, type StoredEntry } from "@/lib/entries/entry";
 import { EntryBook } from "@/lib/entries/entry-book";
 import { entryFiltersToQuery, matchesFilters, type EntryFilters } from "@/lib/entries/entry-filters";
 import { can, dashboardRoutes, type MemberRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
-import type { Category } from "@/config/categories";
 import { CHIP_CLASS } from "./chip-group";
 import { EditEntrySheet } from "./edit-entry-sheet";
 import { EntryList, type ListEntry } from "./entry-list";
@@ -62,6 +57,7 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
   const { money } = useCalcFormat();
   const today = useToday();
   const queued = useQueuedEntries();
+  const catalog = useCategoryCatalog();
 
   const [editing, setEditing] = useState<DisplayEntry | null>(null);
   // Records deleted on screen that wait out their 5 seconds of Undo (shared by all screens).
@@ -71,7 +67,9 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
   const canEdit = can(role, "editEntry");
 
   const rows = useMemo(() => {
-    const waiting = queued.filter((entry) => matchesFilters(entry, filters));
+    // An id and the default key of the same category count as one when filtering.
+    const canonical = (ref: string, type: EntryType) => catalog.resolve(ref, type).ref;
+    const waiting = queued.filter((entry) => matchesFilters(entry, filters, canonical));
     return mergeQueuedEntries(entries, waiting)
       .filter((entry) => !(entry.id && hiddenIds.has(entry.id)))
       .map(
@@ -81,8 +79,8 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
           locked: role === "staff" && today !== null && entry.entryDate !== today,
         }),
       );
-  }, [entries, queued, filters, hiddenIds, role, today]);
-  const book = useMemo(() => new EntryBook(rows), [rows]);
+  }, [entries, queued, filters, hiddenIds, role, today, catalog]);
+  const book = useMemo(() => new EntryBook(rows, catalog), [rows, catalog]);
 
   // ---------------------------------------------------------------- delete + Undo
 
@@ -96,10 +94,14 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
   if (today === null) return <EntriesSkeleton />;
 
   const hasFilters = Boolean(filters.type || filters.category);
+  // Every category of the chosen kind (hidden ones too: they may still have records), or both kinds.
+  const filterCategories = filters.type
+    ? catalog.all(filters.type)
+    : [...catalog.all("income"), ...catalog.all("expense")];
   const monthLabel = dates.monthYear(filters.month);
   const linkTo = (next: EntryFilters) =>
     `${dashboardRoutes.entries}${entryFiltersToQuery(next, defaultMonth)}`;
-  const totals = book.size > 0 ? EntryBook.total(rows) : null;
+  const totals = book.size > 0 ? EntryBook.total(rows, catalog) : null;
   const isLoss = (totals?.profitCents ?? 0) < 0;
 
   return (
@@ -143,7 +145,7 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
           {(["income", "expense"] as const).map((type) => (
             <FilterChip
               key={type}
-              href={linkTo({ ...filters, type, category: keepCategory(filters.category, type) })}
+              href={linkTo({ ...filters, type, category: keepCategory(filters.category, type, catalog) })}
               active={filters.type === type}
             >
               {tEntry(type)}
@@ -154,13 +156,13 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
           <FilterChip href={linkTo({ ...filters, category: null })} active={!filters.category}>
             {t("allCategories")}
           </FilterChip>
-          {(filters.type ? CATEGORIES_BY_TYPE[filters.type] : ALL_CATEGORIES).map((key) => (
+          {filterCategories.map((option) => (
             <FilterChip
-              key={key}
-              href={linkTo({ ...filters, category: key })}
-              active={filters.category === key}
+              key={`${option.type}-${option.ref}`}
+              href={linkTo({ ...filters, category: option.ref })}
+              active={filters.category === option.ref || filters.category === option.key}
             >
-              <CategoryLabel category={key} />
+              {option.label}
             </FilterChip>
           ))}
         </FilterRow>
@@ -233,14 +235,9 @@ export function EntriesView({ role, entries, filters, defaultMonth, truncated }:
   );
 }
 
-/** A category chosen earlier stays chosen only if it fits the new type. */
-function keepCategory(category: Category | null, type: EntryType): Category | null {
-  return category && isCategoryOf(type, category) ? category : null;
-}
-
-function CategoryLabel({ category }: { category: Category }) {
-  const t = useTranslations("categories");
-  return <>{t(category)}</>;
+/** A category chosen earlier stays chosen only if the shop has it for the new type. */
+function keepCategory(category: string | null, type: EntryType, catalog: CategoryCatalog): string | null {
+  return category ? (catalog.find(category, type)?.ref ?? null) : null;
 }
 
 /** A labelled row of filter chips; scrolls sideways on small phones. */

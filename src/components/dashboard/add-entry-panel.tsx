@@ -6,12 +6,13 @@ import { toast } from "sonner";
 import { addEntry } from "@/actions/entries";
 import { EntryForm, type SaveResult } from "@/components/my-business/entry-form";
 import { useToday } from "@/components/my-business/use-today";
+import { useCategoryCatalog } from "@/components/shop-catalog-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { track } from "@/lib/analytics";
 import type { EntryFields, EntryType } from "@/lib/entries/entry";
 import { LocalStoreFullError } from "@/lib/local-entry-store";
 import { offlineEntryQueue } from "@/lib/offline-queue";
-import type { MemberRole } from "@/lib/roles";
+import { can, type MemberRole } from "@/lib/roles";
 
 interface AddEntryPanelProps {
   role: MemberRole;
@@ -31,6 +32,7 @@ export function AddEntryPanel({ role, initialType }: AddEntryPanelProps) {
   const tEntry = useTranslations("entry");
   const tOffline = useTranslations("offline");
   const today = useToday();
+  const catalog = useCategoryCatalog();
   // The id of an entry whose save did not finish. Tapping Save again with the
   // same entry reuses it, so if the first try had reached the server after all
   // (the answer was lost), the entry is still stored once.
@@ -38,6 +40,11 @@ export function AddEntryPanel({ role, initialType }: AddEntryPanelProps) {
 
   if (today === null) {
     return <Skeleton aria-hidden="true" className="h-[34rem] w-full rounded-2xl" />;
+  }
+
+  /** A short label for analytics: the default key ("stock"), or "custom" for the owner's own category. */
+  function analyticsCategory(fields: EntryFields): string {
+    return catalog.find(fields.category, fields.type)?.key ?? "custom";
   }
 
   /** Keeps the entry on this phone until the connection is back. */
@@ -52,7 +59,7 @@ export function AddEntryPanel({ role, initialType }: AddEntryPanelProps) {
     unfinished.current = null;
     toast.success(tOffline("queued"));
     // Only labels, never the amount or the note (Part F4.6).
-    track("entry_added", { type: fields.type, category: fields.category, role, offline: true });
+    track("entry_added", { type: fields.type, category: analyticsCategory(fields), role, offline: true });
     return "queued";
   }
 
@@ -85,11 +92,17 @@ export function AddEntryPanel({ role, initialType }: AddEntryPanelProps) {
 
     unfinished.current = null;
     // Only labels, never the amount or the note (Part F4.6).
-    track("entry_added", { type: fields.type, category: fields.category, role, offline: false });
+    track("entry_added", { type: fields.type, category: analyticsCategory(fields), role, offline: false });
     return true;
   }
 
   return (
-    <EntryForm today={today} onSave={save} initialType={initialType} autoFocusAmount />
+    <EntryForm
+      today={today}
+      onSave={save}
+      initialType={initialType}
+      autoFocusAmount
+      allowNewCategory={can(role, "manageCategories")}
+    />
   );
 }

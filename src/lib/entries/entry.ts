@@ -1,16 +1,18 @@
 import { z } from "zod";
-import {
-  EXPENSE_CATEGORIES,
-  INCOME_CATEGORIES,
-  type Category,
-} from "@/config/categories";
+import { isDefaultKey } from "@/config/categories";
+import { hasCategoryRefShape, isCategoryId } from "@/lib/categories/category";
 import { addDays, isIsoDate, utcIsoDate, type IsoDate } from "@/lib/dates";
 
 /**
  * One income or expense (Part D2 "Add entry", Part F3 `entries`), with the
  * rules shared by the browser and the server:
- * amount > 0 with up to 2 decimals (whole cents), a category that fits the
- * type, a real date and a note of at most 200 characters.
+ * amount > 0 with up to 2 decimals (whole cents), a category, a real date, a
+ * note of at most 200 characters, and optionally a product with its quantity.
+ *
+ * The category is a *reference*: the shop's category id, or a default key
+ * ('stock') for guest records and entries queued offline. The database turns
+ * a key into the shop's category and checks that the category belongs to the
+ * shop and fits the type; here a key is checked against the default list.
  */
 
 export const ENTRY_TYPES = ["income", "expense"] as const;
@@ -33,20 +35,8 @@ export const IMPORT_BATCH_SIZE = 500;
 /** Older dates are surely typing mistakes. */
 export const EARLIEST_ENTRY_DATE = "2000-01-01";
 
-/** Which categories each type offers, in display order (Part D2). */
-export const CATEGORIES_BY_TYPE = {
-  income: INCOME_CATEGORIES,
-  expense: EXPENSE_CATEGORIES,
-} as const satisfies Record<EntryType, readonly Category[]>;
-
-/** The chip chosen first: most entries are sales, and most costs are stock. */
-export const DEFAULT_CATEGORY = {
-  income: "sales",
-  expense: "stock",
-} as const satisfies Record<EntryType, Category>;
-
-/** Every category key, income first. */
-export const ALL_CATEGORIES = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES] as const;
+/** The most of one product a single entry can count (a decimal such as 1.5 kg is fine). */
+export const MAX_QUANTITY = 999_999;
 
 /**
  * The latest entry date the server accepts ("no future dates", Part F5).
@@ -57,13 +47,14 @@ export function latestEntryDate(now: Date = new Date()): IsoDate {
   return addDays(utcIsoDate(now), 1);
 }
 
-export function isCategoryOf(type: EntryType, category: string): boolean {
-  return (CATEGORIES_BY_TYPE[type] as readonly string[]).includes(category);
+/** Quantities have at most 3 decimals, like the database column. */
+function hasAtMostThreeDecimals(quantity: number): boolean {
+  return Math.abs(Math.round(quantity * 1000) - quantity * 1000) < 1e-6;
 }
 
 const entryShape = {
   type: z.enum(ENTRY_TYPES),
-  category: z.enum(ALL_CATEGORIES),
+  category: z.string().refine(hasCategoryRefShape, "invalidCategory"),
   amountCents: z.number().int().positive().max(MAX_AMOUNT_CENTS),
   entryDate: z
     .string()
@@ -75,16 +66,40 @@ const entryShape = {
     .max(ENTRY_NOTE_MAX_LENGTH, "noteTooLong")
     .nullable()
     .transform((note) => note || null),
+  /** The product sold or bought (Part D8); older records have none. */
+  productId: z.uuid().nullable().default(null),
+  /** How many of it; always together with a product. */
+  quantity: z
+    .number()
+    .positive()
+    .max(MAX_QUANTITY)
+    .refine(hasAtMostThreeDecimals, "invalidQuantity")
+    .nullable()
+    .default(null),
 };
 
-/** "Sales" is income and "Stock" is an expense: never the other way round. */
-function categoryFitsType(entry: { type: EntryType; category: Category }): boolean {
-  return isCategoryOf(entry.type, entry.category);
+type ShapeInput = { type: EntryType; category: string; productId: string | null; quantity: number | null };
+
+/**
+ * A default key ("sales") must be one of the default categories of that kind:
+ * "Sales" is income and "Stock" is an expense, never the other way round. An
+ * id cannot be checked here; the database checks it belongs to this shop.
+ */
+function categoryFitsType(entry: ShapeInput): boolean {
+  return isCategoryId(entry.category) || isDefaultKey(entry.type, entry.category);
 }
 const CATEGORY_MISMATCH = { message: "categoryMismatch", path: ["category"] };
 
+function productMatchesQuantity(entry: ShapeInput): boolean {
+  return (entry.productId === null) === (entry.quantity === null);
+}
+const PRODUCT_QUANTITY = { message: "quantityRequired", path: ["quantity"] };
+
 /** What a person fills in on the Add entry form. */
-export const entryFieldsSchema = z.object(entryShape).refine(categoryFitsType, CATEGORY_MISMATCH);
+export const entryFieldsSchema = z
+  .object(entryShape)
+  .refine(categoryFitsType, CATEGORY_MISMATCH)
+  .refine(productMatchesQuantity, PRODUCT_QUANTITY);
 
 export type EntryFields = z.output<typeof entryFieldsSchema>;
 
@@ -95,7 +110,8 @@ export type EntryFields = z.output<typeof entryFieldsSchema>;
  */
 export const clientEntrySchema = z
   .object({ ...entryShape, clientId: z.uuid(), createdAt: z.iso.datetime() })
-  .refine(categoryFitsType, CATEGORY_MISMATCH);
+  .refine(categoryFitsType, CATEGORY_MISMATCH)
+  .refine(productMatchesQuantity, PRODUCT_QUANTITY);
 
 export type ClientEntry = z.output<typeof clientEntrySchema>;
 

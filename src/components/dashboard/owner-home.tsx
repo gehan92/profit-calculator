@@ -4,6 +4,7 @@ import { ArrowRightIcon, InboxIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { useQueuedEntries } from "@/components/offline/use-queued-entries";
+import { useCategoryCatalog } from "@/components/shop-catalog-context";
 import { useDateLabels } from "@/components/use-date-labels";
 import { EntryList } from "@/components/my-business/entry-list";
 import { TodaySummary } from "@/components/my-business/today-summary";
@@ -46,7 +47,8 @@ export function OwnerHome({ shopName, entries }: OwnerHomeProps) {
     () => mergeQueuedEntries(entries, queued).filter((entry) => !(entry.id && hiddenIds.has(entry.id))),
     [entries, queued, hiddenIds],
   );
-  const book = useMemo(() => new EntryBook(rows), [rows]);
+  const catalog = useCategoryCatalog();
+  const book = useMemo(() => new EntryBook(rows, catalog), [rows, catalog]);
 
   if (today === null) return <OwnerHomeSkeleton />;
 

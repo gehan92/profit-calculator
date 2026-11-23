@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CurrencyProvider } from "@/components/currency-context";
 import { EntriesView } from "@/components/my-business/entries-view";
+import { ShopCatalogProvider } from "@/components/shop-catalog-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { routing } from "@/i18n/routing";
 import { requireDashboardPage } from "@/lib/auth/dashboard-access";
@@ -12,6 +13,7 @@ import { monthOf, utcIsoDate } from "@/lib/dates";
 import { parseEntryFilters } from "@/lib/entries/entry-filters";
 import { EntryRepository } from "@/lib/entries/entry-repository";
 import { dashboardRoutes } from "@/lib/roles";
+import { loadShopCatalogOnce } from "@/lib/shop-catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({
@@ -53,10 +55,10 @@ async function EntriesContent({ params, searchParams }: PageProps<"/[locale]/das
   const filters = parseEntryFilters(await searchParams, defaultMonth);
 
   const supabase = await createSupabaseServerClient();
-  const { entries, truncated } = await new EntryRepository(supabase).listMonth(
-    membership.business.id,
-    filters,
-  );
+  const [{ entries, truncated }, catalog] = await Promise.all([
+    new EntryRepository(supabase).listMonth(membership.business.id, filters),
+    loadShopCatalogOnce(supabase, membership.business.id),
+  ]);
 
   return (
     <div className="space-y-5">
@@ -64,13 +66,15 @@ async function EntriesContent({ params, searchParams }: PageProps<"/[locale]/das
         {membership.role === "staff" ? t("myEntries") : t("entries")}
       </h1>
       <CurrencyProvider currency={membership.business.currency}>
-        <EntriesView
-          role={membership.role}
-          entries={entries}
-          filters={filters}
-          defaultMonth={defaultMonth}
-          truncated={truncated}
-        />
+        <ShopCatalogProvider categories={catalog.categories} products={catalog.products}>
+          <EntriesView
+            role={membership.role}
+            entries={entries}
+            filters={filters}
+            defaultMonth={defaultMonth}
+            truncated={truncated}
+          />
+        </ShopCatalogProvider>
       </CurrencyProvider>
     </div>
   );

@@ -22,13 +22,19 @@ describe("parseEntryFilters", () => {
 
   it("ignores values that are not valid", () => {
     expect(
-      parseEntryFilters({ month: "2026-13", type: "loan", category: "lottery" }, NOW),
+      parseEntryFilters({ month: "2026-13", type: "loan", category: "Not a key!" }, NOW),
     ).toEqual({ month: NOW, type: null, category: null });
   });
 
   it("drops a category that does not fit the type", () => {
     expect(parseEntryFilters({ type: "income", category: "stock" }, NOW).category).toBeNull();
     expect(parseEntryFilters({ type: "expense", category: "stock" }, NOW).category).toBe("stock");
+  });
+
+  it("keeps a category id (the shop's own list), also for either type", () => {
+    const id = "0b6a5c2e-4d1f-4a8e-9a77-2f7d3c9e1a10";
+    expect(parseEntryFilters({ type: "income", category: id }, NOW).category).toBe(id);
+    expect(parseEntryFilters({ category: id }, NOW).category).toBe(id);
   });
 
   it("keeps a category without a type", () => {
@@ -95,5 +101,23 @@ describe("matchesFilters", () => {
     expect(matchesFilters(entry, { month: "2026-11", type: "income", category: null })).toBe(false);
     expect(matchesFilters(entry, { month: "2026-11", type: "expense", category: "rent" })).toBe(false);
     expect(matchesFilters(entry, { month: "2026-11", type: "expense", category: "stock" })).toBe(true);
+  });
+});
+
+describe("matchesFilters with a category that has an id and a key", () => {
+  const id = "0b6a5c2e-4d1f-4a8e-9a77-2f7d3c9e1a10";
+  // The shop's "stock" category is known by its id and by its default key.
+  const canonical = (category: string) => (category === "stock" ? id : category);
+
+  it("counts an entry saved with the key as the same category as a filter with the id", () => {
+    const entry = { type: "expense", category: "stock", entryDate: "2026-11-15" } as const;
+    const filters = { month: "2026-11", type: null, category: id };
+    expect(matchesFilters(entry, filters)).toBe(false);
+    expect(matchesFilters(entry, filters, canonical)).toBe(true);
+  });
+
+  it("still tells different categories apart", () => {
+    const entry = { type: "expense", category: "rent", entryDate: "2026-11-15" } as const;
+    expect(matchesFilters(entry, { month: "2026-11", type: null, category: id }, canonical)).toBe(false);
   });
 });

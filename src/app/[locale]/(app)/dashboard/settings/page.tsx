@@ -1,4 +1,4 @@
-import { LogOutIcon } from "lucide-react";
+import { LogOutIcon, PackageIcon, TagsIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
@@ -8,6 +8,7 @@ import { LogoutForm } from "@/components/auth/logout-form";
 import { DeleteAccountCard } from "@/components/settings/delete-account-card";
 import { ExportCard } from "@/components/settings/export-card";
 import { SettingsCard } from "@/components/settings/settings-card";
+import { SettingsLink } from "@/components/settings/settings-link";
 import { ShopSettingsForm } from "@/components/settings/shop-settings-form";
 import { SupportAccessCard } from "@/components/settings/support-access-card";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,22 @@ async function SettingsContent({ params }: Pick<PageProps<"/[locale]/dashboard/s
           initial={{ name: membership.business.name, currency: membership.business.currency }}
         />
       </SettingsCard>
+
+      {/* The shop's own lists (Part D8, D9). */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <SettingsLink
+          href={dashboardRoutes.categories}
+          icon={TagsIcon}
+          title={t("categoriesTitle")}
+          body={t("categoriesBody")}
+        />
+        <SettingsLink
+          href={dashboardRoutes.products}
+          icon={PackageIcon}
+          title={t("productsTitle")}
+          body={t("productsBody")}
+        />
+      </div>
 
       <SettingsCard id="export" title={t("exportTitle")} description={t("exportBody")}>
         <ExportCard />

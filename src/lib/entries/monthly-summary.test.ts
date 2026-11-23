@@ -1,15 +1,23 @@
 import { describe, expect, it } from "vitest";
-import {
-  EXPENSE_CATEGORIES,
-  HIDDEN_COST_CATEGORIES,
-  INCOME_CATEGORIES,
-  type Category,
-} from "@/config/categories";
-import { MonthlySummary, type SummaryEntry } from "./monthly-summary";
+import { CategoryCatalog, defaultCategoryRows, type CategoryRow } from "@/lib/categories/category";
+import { MonthlySummary as RealMonthlySummary, type SummaryEntry } from "./monthly-summary";
+
+/** A guest's list (the defaults): Transport, Family use, Owner salary and Wastage are hidden costs. */
+const catalog = new CategoryCatalog(defaultCategoryRows(), (key) => key);
+const INCOME_CATEGORIES = catalog.options("income").map((category) => category.ref);
+const EXPENSE_CATEGORIES = catalog.options("expense").map((category) => category.ref);
+const HIDDEN_COST_CATEGORIES = catalog.options("expense").filter((c) => c.countsAs === "hidden_cost").map((c) => c.ref);
+
+/** The summary with the default catalog, so the cases below read the same as before. */
+class MonthlySummary extends RealMonthlySummary {
+  constructor(month: string, entries: readonly SummaryEntry[], previous: readonly SummaryEntry[] = []) {
+    super(catalog, month, entries, previous);
+  }
+}
 
 function entry(
   type: "income" | "expense",
-  category: Category,
+  category: string,
   amountCents: number,
   entryDate: string,
 ): SummaryEntry {
@@ -44,11 +52,12 @@ describe("MonthlySummary totals", () => {
   it("shows cash profit and then real profit, with each hidden cost taken off once", () => {
     expect(summary.totals.hiddenCostCents).toBe(3_800_000);
     expect(summary.totals.realProfitCents).toBe(7_200_000);
+    // In the owner's list order (the defaults put Transport first), zeros included.
     expect(summary.hiddenCosts()).toEqual([
+      { category: "transport", amountCents: 300_000 },
       { category: "family_use", amountCents: 2_000_000 },
       { category: "owner_salary", amountCents: 1_000_000 },
       { category: "wastage", amountCents: 500_000 },
-      { category: "transport", amountCents: 300_000 },
     ]);
   });
 
@@ -197,7 +206,7 @@ describe("Totals match the manual sum (Part G1, Day 10)", () => {
     let hidden = 0;
     for (const e of entries) {
       if (e.type === "income") income += e.amountCents;
-      else if ((HIDDEN_COST_CATEGORIES as readonly string[]).includes(e.category)) hidden += e.amountCents;
+      else if (HIDDEN_COST_CATEGORIES.includes(e.category)) hidden += e.amountCents;
       else shopCosts += e.amountCents;
     }
 
@@ -221,5 +230,53 @@ describe("toSnapshot", () => {
     expect(JSON.parse(JSON.stringify(snapshot))).toEqual(snapshot);
     expect(snapshot.days).toHaveLength(30);
     expect(snapshot.topCosts).toHaveLength(3);
+  });
+});
+
+describe("MonthlySummary with a shop's own categories (Part D9)", () => {
+  const ID = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  const row = (partial: Partial<CategoryRow> & Pick<CategoryRow, "type">): CategoryRow => ({
+    id: null, key: null, name: null, icon: "tag", color: "gray", countsAs: "normal", sort: 100, archived: false, ...partial,
+  });
+  const shopRows: CategoryRow[] = [
+    row({ id: ID(1), type: "income", key: "sales", sort: 1 }),
+    row({ id: ID(2), type: "expense", key: "stock", sort: 1 }),
+    row({ id: ID(3), type: "expense", name: "Packaging", sort: 2, countsAs: "hidden_cost" }),
+    row({ id: ID(4), type: "expense", key: "family_use", sort: 3, countsAs: "hidden_cost" }),
+    row({ id: ID(5), type: "expense", name: "Old habit", sort: 4, countsAs: "hidden_cost", archived: true }),
+    row({ id: ID(6), type: "expense", key: "transport", sort: 5 }), // the owner turned the hidden cost off
+  ];
+  const shop = new CategoryCatalog(shopRows, (key) => key);
+  const month = [
+    entry("income", ID(1), 10_000_000, "2026-11-02"),
+    entry("expense", ID(2), 4_000_000, "2026-11-03"),
+    entry("expense", ID(3), 500_000, "2026-11-04"),
+    entry("expense", ID(6), 300_000, "2026-11-05"),
+    entry("expense", ID(5), 200_000, "2026-11-06"),
+  ];
+  const summary = new RealMonthlySummary(shop, "2026-11", month);
+
+  it("counts the owner's own hidden-cost category, and Transport as an ordinary cost once the owner turned it off", () => {
+    expect(summary.totals).toMatchObject({ expenseCents: 4_300_000, hiddenCostCents: 700_000, profitCents: 5_700_000, realProfitCents: 5_000_000 });
+  });
+
+  it("lists every offered hidden cost (zeros too), then a hidden one that was put away but still has money", () => {
+    expect(summary.hiddenCosts()).toEqual([
+      { category: ID(3), amountCents: 500_000 },
+      { category: ID(4), amountCents: 0 },
+      { category: ID(5), amountCents: 200_000 },
+    ]);
+  });
+
+  it("groups the same category together whether the entry names its id or its default key", () => {
+    const mixed = new RealMonthlySummary(shop, "2026-11", [
+      entry("expense", ID(2), 1_000_000, "2026-11-03"),
+      entry("expense", "stock", 2_000_000, "2026-11-04"),
+    ]);
+    expect(mixed.topCosts()).toEqual([{ category: ID(2), amountCents: 3_000_000, percent: 100 }]);
+  });
+
+  it("lists the owner's own category among the biggest costs", () => {
+    expect(summary.topCosts().map((cost) => cost.category)).toEqual([ID(2), ID(6)]);
   });
 });

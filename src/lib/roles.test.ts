@@ -9,6 +9,7 @@ const ROUTE_TABLE: [string, boolean, boolean, boolean][] = [
   ["/dashboard/summary", true, false, true],
   ["/dashboard/products", true, false, false],
   ["/dashboard/settings", true, false, false],
+  ["/dashboard/settings/categories", true, false, false],
   ["/dashboard/team", true, false, false],
 ];
 
@@ -39,8 +40,14 @@ describe("landing", () => {
 });
 
 describe("NAV (Part C1 navigation by role)", () => {
-  it("gives the Owner Home · Add · Summary · Settings", () => {
-    expect(NAV.owner.map((item) => item.key)).toEqual(["home", "add", "summary", "settings"]);
+  it("gives the Owner Home · Add · Summary · Products · Settings", () => {
+    expect(NAV.owner.map((item) => item.key)).toEqual(["home", "add", "summary", "products", "settings"]);
+  });
+
+  it("keeps the phone's bottom bar at four tabs: Products is in the laptop menu only", () => {
+    const phone = NAV.owner.filter((item) => !item.sidebarOnly).map((item) => item.key);
+    expect(phone).toEqual(["home", "add", "summary", "settings"]);
+    for (const role of MEMBER_ROLES) expect(NAV[role].filter((item) => !item.sidebarOnly).length).toBeLessThanOrEqual(4);
   });
 
   it("only links to screens the role may open", () => {
@@ -50,7 +57,7 @@ describe("NAV (Part C1 navigation by role)", () => {
   });
 
   it("knows every route", () => {
-    expect(Object.values(dashboardRoutes)).toHaveLength(7);
+    expect(Object.values(dashboardRoutes)).toHaveLength(8);
   });
 });
 
@@ -77,5 +84,10 @@ describe("can (Part B2 permission matrix)", () => {
     // Settings: only the Owner changes the shop or downloads all records.
     expect(MEMBER_ROLES.filter((role) => can(role, "exportData"))).toEqual(["owner"]);
     expect(MEMBER_ROLES.filter((role) => can(role, "editShop"))).toEqual(["owner"]);
+  });
+
+  it("lets only the Owner change categories and products (Staff and Viewers only read them)", () => {
+    expect(MEMBER_ROLES.filter((role) => can(role, "manageCategories"))).toEqual(["owner"]);
+    expect(MEMBER_ROLES.filter((role) => can(role, "manageProducts"))).toEqual(["owner"]);
   });
 });

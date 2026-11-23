@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useCategoryCatalog } from "@/components/shop-catalog-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { track } from "@/lib/analytics";
@@ -37,7 +38,9 @@ export function GuestBusiness() {
   const tBusiness = useTranslations("myBusiness");
   const entries = useGuestEntries();
   const today = useToday();
-  const book = useMemo(() => new EntryBook(entries ?? []), [entries]);
+  // No account: the default categories (the same list a new shop starts with).
+  const catalog = useCategoryCatalog();
+  const book = useMemo(() => new EntryBook(entries ?? [], catalog), [entries, catalog]);
 
   if (entries === null || today === null) return <GuestBusinessSkeleton />;
 

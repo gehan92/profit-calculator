@@ -1,13 +1,21 @@
-import { isHiddenCost } from "@/config/categories";
 import { monthOf, type IsoDate } from "@/lib/dates";
-import type { EntryFields } from "./entry";
+import type { EntryFields, EntryType } from "./entry";
+
+/**
+ * Decides which expenses are hidden costs. The shop's `CategoryCatalog` is
+ * the rule (the owner chooses in Settings → Categories); tests can pass a
+ * simpler one.
+ */
+export interface HiddenCostRule {
+  isHiddenCost(category: string, type: EntryType): boolean;
+}
 
 /**
  * Money in and out for some entries.
  *
  * - `expenseCents` are the shop's own costs (stock, rent, salary…).
  * - `hiddenCostCents` are the costs owners forget (family use, owner salary,
- *   wastage, transport): see `HIDDEN_COST_CATEGORIES`.
+ *   wastage, transport by default): the categories marked "hidden cost".
  * - Profit = Income − Expenses (Part D1): the "cash profit".
  * - Real profit = Profit − hidden costs (Part D2 "Real profit"), so a hidden
  *   cost is subtracted once, never twice.
@@ -48,7 +56,10 @@ export interface DayGroup<Entry extends BookEntry> {
  * Used by guest mode and by the Owner screens.
  */
 export class EntryBook<Entry extends BookEntry> {
-  constructor(private readonly entries: readonly Entry[]) {}
+  constructor(
+    private readonly entries: readonly Entry[],
+    private readonly rule: HiddenCostRule,
+  ) {}
 
   get size(): number {
     return this.entries.length;
@@ -56,12 +67,12 @@ export class EntryBook<Entry extends BookEntry> {
 
   /** Totals for one day, e.g. today. */
   forDay(date: IsoDate): Totals {
-    return EntryBook.total(this.entries.filter((entry) => entry.entryDate === date));
+    return EntryBook.total(this.entries.filter((entry) => entry.entryDate === date), this.rule);
   }
 
   /** Totals for one month, e.g. "2026-11". */
   forMonth(month: string): Totals {
-    return EntryBook.total(this.entries.filter((entry) => monthOf(entry.entryDate) === month));
+    return EntryBook.total(this.entries.filter((entry) => monthOf(entry.entryDate) === month), this.rule);
   }
 
   /** Every day that has entries, newest day first. */
@@ -77,18 +88,19 @@ export class EntryBook<Entry extends BookEntry> {
       .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
       .map(([date, entries]) => ({
         date,
-        totals: EntryBook.total(entries),
+        totals: EntryBook.total(entries, this.rule),
         entries: entries.toSorted((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
       }));
   }
 
-  static total(entries: readonly TotalEntry[]): Totals {
+  /** Adds up entries. The rule says which expenses are hidden costs. */
+  static total(entries: readonly TotalEntry[], rule: HiddenCostRule): Totals {
     let incomeCents = 0;
     let expenseCents = 0;
     let hiddenCostCents = 0;
     for (const entry of entries) {
       if (entry.type === "income") incomeCents += entry.amountCents;
-      else if (isHiddenCost(entry.category)) hiddenCostCents += entry.amountCents;
+      else if (rule.isHiddenCost(entry.category, entry.type)) hiddenCostCents += entry.amountCents;
       else expenseCents += entry.amountCents;
     }
     const profitCents = incomeCents - expenseCents;

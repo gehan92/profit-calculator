@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { updateEntry } from "@/actions/entries";
 import { useCalcFormat } from "@/components/calculators/use-calc-format";
+import { useCategoryCatalog } from "@/components/shop-catalog-context";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -34,7 +35,7 @@ interface EditEntrySheetProps {
  */
 export function EditEntrySheet({ entry, role, today, onClose, onDelete }: EditEntrySheetProps) {
   const t = useTranslations("entry");
-  const tCategory = useTranslations("categories");
+  const catalog = useCategoryCatalog();
   const dates = useDateLabels();
   const { money } = useCalcFormat();
   const [confirming, setConfirming] = useState(false);
@@ -100,6 +101,7 @@ export function EditEntrySheet({ entry, role, today, onClose, onDelete }: EditEn
                 today={today}
                 initial={entry}
                 lockDate={role === "staff"}
+                allowNewCategory={can(role, "manageCategories")}
                 onSave={save}
               />
               {can(role, "deleteEntry") && (
@@ -125,7 +127,7 @@ export function EditEntrySheet({ entry, role, today, onClose, onDelete }: EditEn
         description={
           entry
             ? t("deleteBody", {
-                category: tCategory(entry.category),
+                category: catalog.label(entry.category, entry.type),
                 amount: money(entry.amountCents),
                 date: dates.dayMonthYear(entry.entryDate),
                 seconds: DELETE_UNDO_SECONDS,

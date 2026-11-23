@@ -10,6 +10,8 @@ const stored = (id: string, clientId: string | null): StoredEntry => ({
   amountCents: 100_000,
   entryDate: "2026-11-15",
   note: null,
+  productId: null,
+  quantity: null,
   createdAt: "2026-11-15T09:00:00.000Z",
 });
 
@@ -20,6 +22,8 @@ const queued = (clientId: string): ClientEntry => ({
   amountCents: 50_000,
   entryDate: "2026-11-15",
   note: "offline",
+  productId: null,
+  quantity: null,
   createdAt: "2026-11-15T10:00:00.000Z",
 });
 
@@ -46,5 +50,15 @@ describe("mergeQueuedEntries", () => {
     expect(mergeQueuedEntries([stored("a", null)], [])).toHaveLength(1);
     expect(mergeQueuedEntries([], [queued("33333333-3333-4333-8333-333333333333")])).toHaveLength(1);
     expect(mergeQueuedEntries([], [])).toEqual([]);
+  });
+
+  it("keeps the product and quantity of saved and waiting entries, so lists can show them", () => {
+    const withProduct = { ...stored("p", null), productId: "5d0d1c2e-6b3f-4f1c-8a21-7a9e3b1c4d55", quantity: 3 };
+    const waiting = { ...queued("22222222-2222-4222-8222-222222222222"), productId: "5d0d1c2e-6b3f-4f1c-8a21-7a9e3b1c4d55", quantity: 1.5 };
+    const rows = mergeQueuedEntries([withProduct], [waiting]);
+    expect(rows.map((row) => [row.productId, row.quantity])).toEqual([
+      ["5d0d1c2e-6b3f-4f1c-8a21-7a9e3b1c4d55", 3],
+      ["5d0d1c2e-6b3f-4f1c-8a21-7a9e3b1c4d55", 1.5],
+    ]);
   });
 });

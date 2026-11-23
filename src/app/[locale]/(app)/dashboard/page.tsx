@@ -9,6 +9,7 @@ import { AddButtons } from "@/components/dashboard/add-buttons";
 import { GuestImportPrompt } from "@/components/dashboard/guest-import-prompt";
 import { NoAccessToast } from "@/components/dashboard/no-access-toast";
 import { OwnerHome } from "@/components/dashboard/owner-home";
+import { ShopCatalogProvider } from "@/components/shop-catalog-context";
 import { WelcomeBackToast } from "@/components/dashboard/welcome-back-toast";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +20,7 @@ import { WELCOME_BACK_PARAM } from "@/lib/auth/routes";
 import { addDays, utcIsoDate } from "@/lib/dates";
 import { EntryRepository } from "@/lib/entries/entry-repository";
 import { can, dashboardRoutes } from "@/lib/roles";
+import { loadShopCatalogOnce } from "@/lib/shop-catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
@@ -65,13 +67,15 @@ async function HomeContent({ params, searchParams }: PageProps<"/[locale]/dashbo
   let ownerHome = null;
   if (can(role, "seeTotals")) {
     const supabase = await createSupabaseServerClient();
-    const entries = await new EntryRepository(supabase).listSince(
-      business.id,
-      addDays(utcIsoDate(), -HOME_HISTORY_DAYS),
-    );
+    const [entries, catalog] = await Promise.all([
+      new EntryRepository(supabase).listSince(business.id, addDays(utcIsoDate(), -HOME_HISTORY_DAYS)),
+      loadShopCatalogOnce(supabase, business.id),
+    ]);
     ownerHome = (
       <CurrencyProvider currency={business.currency}>
-        <OwnerHome shopName={business.name} entries={entries} />
+        <ShopCatalogProvider categories={catalog.categories} products={catalog.products}>
+          <OwnerHome shopName={business.name} entries={entries} />
+        </ShopCatalogProvider>
       </CurrencyProvider>
     );
   }

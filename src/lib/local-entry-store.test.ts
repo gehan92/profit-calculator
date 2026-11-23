@@ -13,6 +13,8 @@ const sale: EntryFields = {
   amountCents: 2_500_000,
   entryDate: "2026-11-15",
   note: null,
+  productId: null,
+  quantity: null,
 };
 const stock: EntryFields = { ...sale, type: "expense", category: "stock", amountCents: 1_500_000 };
 

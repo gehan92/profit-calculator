@@ -8,9 +8,12 @@ import { isDeleteConfirmed } from "@/lib/account/delete-confirmation";
 import { supportAccessEnd } from "@/lib/account/support-access";
 import { authorize } from "@/lib/auth/authorize";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { CategoryCatalog } from "@/lib/categories/category";
+import { categoryNameOf } from "@/lib/categories/category-labels";
 import { buildEntriesCsv } from "@/lib/entries/entry-csv";
 import { EntryRepository } from "@/lib/entries/entry-repository";
 import { localIsoDate } from "@/lib/dates";
+import { loadShopCatalog } from "@/lib/shop-catalog";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -46,23 +49,30 @@ export async function exportCsv(locale: string): Promise<ExportCsvResult> {
     );
     if (entries.length === 0) return { ok: false, error: "empty" };
 
-    const [tColumns, tEntry, tCategory] = await Promise.all([
+    const [tColumns, tEntry, tCategory, shop] = await Promise.all([
       getTranslations({ locale: parsedLocale.data, namespace: "settings.csvColumns" }),
       getTranslations({ locale: parsedLocale.data, namespace: "entry" }),
       getTranslations({ locale: parsedLocale.data, namespace: "categories" }),
+      loadShopCatalog(access.supabase, access.membership.business.id),
     ]);
+    // The shop's own names for categories and products, so the file reads like the screens.
+    const catalog = new CategoryCatalog(shop.categories, (key) => categoryNameOf(tCategory, key));
+    const productNames = new Map(shop.products.map((product) => [product.id, product.name]));
     const csv = buildEntriesCsv(entries, access.membership.business.currency, {
       columns: {
         date: tColumns("date"),
         type: tColumns("type"),
         category: tColumns("category"),
+        product: tColumns("product"),
+        quantity: tColumns("quantity"),
         amount: tColumns("amount"),
         currency: tColumns("currency"),
         note: tColumns("note"),
         addedAt: tColumns("addedAt"),
       },
       type: (type) => tEntry(type),
-      category: (category) => tCategory(category),
+      category: (entry) => catalog.label(entry.category, entry.type),
+      product: (entry) => (entry.productId ? (productNames.get(entry.productId) ?? "") : ""),
     });
 
     return {

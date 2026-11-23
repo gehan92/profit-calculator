@@ -1,9 +1,4 @@
-import {
-  HIDDEN_COST_CATEGORIES,
-  isHiddenCost,
-  type ExpenseCategory,
-  type HiddenCostCategory,
-} from "@/config/categories";
+import type { CategoryCatalog } from "@/lib/categories/category";
 import { addDays, daysInMonth, firstDayOfMonth, monthOf, shiftMonth, type IsoDate } from "@/lib/dates";
 import { EntryBook, type Totals, type TotalEntry } from "./entry-book";
 
@@ -22,14 +17,15 @@ export interface DaySummary {
 
 /** One of the biggest costs: its amount and its share of all expenses. */
 export interface CostShare {
-  category: ExpenseCategory;
+  /** The category's reference (id, or key for guests); the catalog gives its name. */
+  category: string;
   amountCents: number;
   /** 0–100. */
   percent: number;
 }
 
 export interface HiddenCost {
-  category: HiddenCostCategory;
+  category: string;
   amountCents: number;
 }
 
@@ -51,7 +47,7 @@ export interface SummarySnapshot {
   /** Every day of the month in order, empty days included (the chart needs them). */
   days: DaySummary[];
   topCosts: CostShare[];
-  /** All four hidden-cost categories in display order, zeros included. */
+  /** Every hidden-cost category in the owner's order, zeros included. */
   hiddenCosts: HiddenCost[];
   comparison: MonthComparison | null;
 }
@@ -65,7 +61,8 @@ export const TOP_COSTS_LIMIT = 3;
  * profit with its hidden costs, and the change from last month.
  *
  * It uses `EntryBook.total` for every total, so Home, Entries and Summary
- * can never disagree. Entries from other months are ignored.
+ * can never disagree. Entries from other months are ignored. The shop's
+ * categories (`catalog`) say which costs are hidden costs.
  */
 export class MonthlySummary {
   readonly totals: Totals;
@@ -74,20 +71,23 @@ export class MonthlySummary {
   private readonly previousTotals: Totals;
 
   /**
+   * @param catalog The shop's categories (which costs are hidden costs).
    * @param month "2026-11".
    * @param entries This month's entries (anything from other months is ignored).
    * @param previousEntries Last month's entries, for "vs last month".
    */
   constructor(
+    private readonly catalog: CategoryCatalog,
     readonly month: string,
     entries: readonly SummaryEntry[],
     previousEntries: readonly SummaryEntry[] = [],
   ) {
     this.entries = entries.filter((entry) => monthOf(entry.entryDate) === month);
-    this.totals = EntryBook.total(this.entries);
+    this.totals = EntryBook.total(this.entries, catalog);
     this.previousMonth = shiftMonth(month, -1);
     this.previousTotals = EntryBook.total(
       previousEntries.filter((entry) => monthOf(entry.entryDate) === this.previousMonth),
+      catalog,
     );
   }
 
@@ -114,7 +114,7 @@ export class MonthlySummary {
     const first = firstDayOfMonth(this.month);
     return Array.from({ length: daysInMonth(this.month) }, (_, index) => {
       const date = addDays(first, index);
-      const totals = EntryBook.total(byDate.get(date) ?? []);
+      const totals = EntryBook.total(byDate.get(date) ?? [], this.catalog);
       return {
         date,
         incomeCents: totals.incomeCents,
@@ -131,10 +131,11 @@ export class MonthlySummary {
    * card instead, so they are not listed here.
    */
   topCosts(limit: number = TOP_COSTS_LIMIT): CostShare[] {
-    const byCategory = new Map<ExpenseCategory, number>();
+    const byCategory = new Map<string, number>();
     for (const entry of this.entries) {
-      if (entry.type !== "expense" || isHiddenCost(entry.category)) continue;
-      const category = entry.category as ExpenseCategory;
+      if (entry.type !== "expense" || this.catalog.isHiddenCost(entry.category, "expense")) continue;
+      // The same category counts as one, whether the entry names its id or its key.
+      const category = this.catalog.resolve(entry.category, "expense").ref;
       byCategory.set(category, (byCategory.get(category) ?? 0) + entry.amountCents);
     }
 
@@ -148,14 +149,25 @@ export class MonthlySummary {
       }));
   }
 
-  /** The four hidden-cost categories with what was recorded this month. */
+  /**
+   * The hidden-cost categories with what was recorded this month: every one
+   * the owner offers (zeros included), then any hidden one that was put away
+   * but still has an amount this month.
+   */
   hiddenCosts(): HiddenCost[] {
-    return HIDDEN_COST_CATEGORIES.map((category) => ({
-      category,
-      amountCents: this.entries
-        .filter((entry) => entry.type === "expense" && entry.category === category)
-        .reduce((sum, entry) => sum + entry.amountCents, 0),
-    }));
+    const amounts = new Map<string, number>();
+    for (const entry of this.entries) {
+      if (entry.type !== "expense" || !this.catalog.isHiddenCost(entry.category, "expense")) continue;
+      const ref = this.catalog.resolve(entry.category, "expense").ref;
+      amounts.set(ref, (amounts.get(ref) ?? 0) + entry.amountCents);
+    }
+
+    const offered = this.catalog
+      .options("expense")
+      .filter((category) => category.countsAs === "hidden_cost")
+      .map((category) => category.ref);
+    const putAway = [...amounts.keys()].filter((ref) => !offered.includes(ref));
+    return [...offered, ...putAway].map((category) => ({ category, amountCents: amounts.get(category) ?? 0 }));
   }
 
   /** `null` when last month has no entries, so there is nothing to compare with. */

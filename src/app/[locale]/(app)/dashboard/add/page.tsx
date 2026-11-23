@@ -6,12 +6,15 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import { CurrencyProvider } from "@/components/currency-context";
+import { ShopCatalogProvider } from "@/components/shop-catalog-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { requireDashboardPage } from "@/lib/auth/dashboard-access";
 import type { EntryType } from "@/lib/entries/entry";
 import { dashboardRoutes } from "@/lib/roles";
+import { loadShopCatalogOnce } from "@/lib/shop-catalog";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({
   params,
@@ -68,10 +71,14 @@ async function AddEntryContent({
   const { type } = await searchParams;
   const initialType: EntryType = type === "expense" ? "expense" : "income";
 
+  const catalog = await loadShopCatalogOnce(await createSupabaseServerClient(), membership.business.id);
+
   // `key`: the two home buttons open the same page; start fresh for each type.
   return (
     <CurrencyProvider currency={membership.business.currency}>
-      <AddEntryPanel key={initialType} role={membership.role} initialType={initialType} />
+      <ShopCatalogProvider categories={catalog.categories} products={catalog.products}>
+        <AddEntryPanel key={initialType} role={membership.role} initialType={initialType} />
+      </ShopCatalogProvider>
     </CurrencyProvider>
   );
 }

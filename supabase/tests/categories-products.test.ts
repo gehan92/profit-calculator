@@ -148,7 +148,7 @@ describe("Entries point to their own shop's category and product", () => {
   });
 
   it("needs a category: the old key or a category id", async () => {
-    await expect(insert(ids.owner, ids.shop, "expense", {})).rejects.toThrow(/entries_has_category|check/);
+    await expect(insert(ids.owner, ids.shop, "expense", {})).rejects.toThrow(/entries_has_category|category_required|check/);
     await insert(ids.owner, ids.shop, "expense", { category: "other" });
   });
 

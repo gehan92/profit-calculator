@@ -24,16 +24,20 @@ export const dashboardRoutes = {
   products: "/dashboard/products",
   team: "/dashboard/team",
   settings: "/dashboard/settings",
+  /** Settings → Categories (add, rename, hide, reorder, hidden cost): Owner only. */
+  categories: "/dashboard/settings/categories",
 } as const;
 
 export type DashboardRoute = (typeof dashboardRoutes)[keyof typeof dashboardRoutes];
 
 /** Label keys of the menu items ("appNav" in messages/*.json). */
-export type NavKey = "home" | "add" | "summary" | "settings" | "today" | "myEntries" | "entries";
+export type NavKey = "home" | "add" | "summary" | "products" | "settings" | "today" | "myEntries" | "entries";
 
 export interface NavItem {
   href: DashboardRoute;
   key: NavKey;
+  /** Only in the laptop sidebar: the phone's bottom bar keeps four tabs so every label fits (Part C1). */
+  sidebarOnly?: true;
 }
 
 /** Phone bottom tabs / laptop sidebar per role (Part C1 "Navigation by role"). */
@@ -42,6 +46,7 @@ export const NAV: Record<MemberRole, readonly NavItem[]> = {
     { href: dashboardRoutes.home, key: "home" },
     { href: dashboardRoutes.add, key: "add" },
     { href: dashboardRoutes.summary, key: "summary" },
+    { href: dashboardRoutes.products, key: "products", sidebarOnly: true },
     { href: dashboardRoutes.settings, key: "settings" },
   ],
   staff: [
@@ -91,6 +96,10 @@ const PERMISSIONS = {
   exportData: ["owner"],
   /** Change the shop name, currency and language (Settings). */
   editShop: ["owner"],
+  /** Add, rename, hide, reorder categories and mark hidden costs (Settings → Categories). */
+  manageCategories: ["owner"],
+  /** Add, change and put away products (Part D8). Staff and Viewers only read them. */
+  manageProducts: ["owner"],
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

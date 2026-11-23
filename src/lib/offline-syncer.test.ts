@@ -10,6 +10,8 @@ const sale: EntryFields = {
   amountCents: 100_000,
   entryDate: "2026-11-21",
   note: null,
+  productId: null,
+  quantity: null,
 };
 
 let queue: LocalEntryStore;

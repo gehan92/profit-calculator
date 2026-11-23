@@ -16,7 +16,12 @@ const fields: EntryFields = {
   amountCents: 2_500_000,
   entryDate: "2026-11-21",
   note: null,
+  productId: null,
+  quantity: null,
 };
+
+const CATEGORY_ID = "0b6a5c2e-4d1f-4a8e-9a77-2f7d3c9e1a10";
+const PRODUCT_ID = "5d0d1c2e-6b3f-4f1c-8a21-7a9e3b1c4d55";
 
 type Answer = { data?: unknown; error?: { code: string; message: string } | null };
 
@@ -77,13 +82,30 @@ describe("EntryRepository.add", () => {
           business_id: "shop-1",
           type: "income",
           category: "sales",
+          category_id: null,
           amount_cents: 2_500_000,
           entry_date: "2026-11-21",
           note: null,
+          product_id: null,
+          quantity: null,
           client_id: "client-1",
         },
       ],
     });
+  });
+
+  it("sends a category id in category_id only (the database fills in the key)", async () => {
+    const { db, calls } = fakeDb();
+    await new EntryRepository(db).add("shop-1", { ...fields, category: CATEGORY_ID }, "client-1");
+    const sent = calls[0].args[0] as Record<string, unknown>;
+    expect(sent.category_id).toBe(CATEGORY_ID);
+    expect("category" in sent).toBe(false);
+  });
+
+  it("sends the product and the quantity", async () => {
+    const { db, calls } = fakeDb();
+    await new EntryRepository(db).add("shop-1", { ...fields, productId: PRODUCT_ID, quantity: 2.5 }, "client-1");
+    expect(calls[0].args[0]).toMatchObject({ product_id: PRODUCT_ID, quantity: 2.5 });
   });
 
   it("keeps the time an offline entry was written", async () => {
@@ -162,6 +184,13 @@ describe("EntryRepository.listMonth", () => {
     expect(calls).toContainEqual({ method: "order", args: ["entry_date", { ascending: false }] });
   });
 
+  it("filters a category id on category_id, and a default key on the key column", async () => {
+    const byId = fakeDb(() => ({ data: [] }));
+    await new EntryRepository(byId.db).listMonth("shop-1", { month: "2026-11", type: null, category: CATEGORY_ID });
+    expect(byId.calls).toContainEqual({ method: "eq", args: ["category_id", CATEGORY_ID] });
+    expect(byId.calls.some((c) => c.method === "eq" && c.args[0] === "category")).toBe(false);
+  });
+
   it("adds no type or category condition when they are not chosen", async () => {
     const { db, calls } = fakeDb(() => ({ data: [] }));
     await new EntryRepository(db).listMonth("shop-1", { month: "2026-11", type: null, category: null });
@@ -171,14 +200,28 @@ describe("EntryRepository.listMonth", () => {
 
   it("says when the month has more entries than one page holds", async () => {
     const row = {
-      id: "x", type: "income", category: "sales", amount_cents: 100, entry_date: "2026-11-01",
-      note: null, created_at: "2026-11-01T00:00:00Z", client_id: null,
+      id: "x", type: "income", category: "sales", category_id: null, amount_cents: 100, entry_date: "2026-11-01",
+      note: null, created_at: "2026-11-01T00:00:00Z", client_id: null, product_id: null, quantity: null,
     };
     const { db } = fakeDb(() => ({ data: Array.from({ length: 1000 }, () => row) }));
     const result = await new EntryRepository(db).listMonth("shop-1", { month: "2026-11", type: null, category: null });
 
     expect(result.truncated).toBe(true);
     expect(result.entries[0]).toMatchObject({ id: "x", amountCents: 100, clientId: null });
+  });
+
+  it("names an entry's category by its id (every saved entry has one), else by the key", async () => {
+    const base = { id: "x", type: "expense", amount_cents: 100, entry_date: "2026-11-01", note: null, created_at: "2026-11-01T00:00:00Z", client_id: null, product_id: PRODUCT_ID, quantity: 3 };
+    const { db } = fakeDb(() => ({
+      data: [
+        { ...base, category: "stock", category_id: CATEGORY_ID },
+        { ...base, category: null, category_id: CATEGORY_ID },
+        { ...base, category: "stock", category_id: null },
+      ],
+    }));
+    const { entries } = await new EntryRepository(db).listMonth("shop-1", { month: "2026-11", type: null, category: null });
+    expect(entries.map((entry) => entry.category)).toEqual([CATEGORY_ID, CATEGORY_ID, "stock"]);
+    expect(entries[0]).toMatchObject({ productId: PRODUCT_ID, quantity: 3 });
   });
 });
 
@@ -202,8 +245,27 @@ describe("EntryRepository.update and delete", () => {
 
     expect(calls[0]).toEqual({
       method: "update",
-      args: [{ type: "income", category: "sales", amount_cents: 2_500_000, entry_date: "2026-11-21", note: "fixed" }],
+      args: [
+        {
+          type: "income",
+          category: "sales",
+          category_id: null,
+          amount_cents: 2_500_000,
+          entry_date: "2026-11-21",
+          note: "fixed",
+          product_id: null,
+          quantity: null,
+        },
+      ],
     });
+  });
+
+  it("update moves an entry to a category id without touching the key column", async () => {
+    const { db, calls } = fakeDb(() => ({ data: [{ id: "e1" }] }));
+    await new EntryRepository(db).update("e1", { ...fields, category: CATEGORY_ID });
+    const sent = calls[0].args[0] as Record<string, unknown>;
+    expect(sent.category_id).toBe(CATEGORY_ID);
+    expect("category" in sent).toBe(false);
   });
 });
 
@@ -211,6 +273,7 @@ describe("EntryRepository.listMonthForSummary (every entry, not just the first 1
   const row = (n: number) => ({
     type: "income",
     category: "sales",
+    category_id: null,
     amount_cents: n,
     entry_date: "2026-11-05",
   });
@@ -272,11 +335,14 @@ describe("EntryRepository.listAll (CSV export)", () => {
       id: `id-${index}`,
       type: "expense",
       category: "stock",
+      category_id: null,
       amount_cents: 100,
       entry_date: "2026-11-01",
       note: null,
       created_at: "2026-11-01T05:00:00Z",
       client_id: null,
+      product_id: null,
+      quantity: null,
     }));
     const pages = [full, full.slice(0, 7)];
     const { db, calls } = fakeDb((call) => ({ data: pages[call - 1] }));

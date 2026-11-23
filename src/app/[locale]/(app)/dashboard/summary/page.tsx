@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CurrencyProvider } from "@/components/currency-context";
+import { ShopCatalogProvider } from "@/components/shop-catalog-context";
 import { SummaryView } from "@/components/summary/summary-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { routing } from "@/i18n/routing";
@@ -12,7 +13,10 @@ import { monthOf, shiftMonth, utcIsoDate } from "@/lib/dates";
 import { parseMonthParam } from "@/lib/entries/entry-filters";
 import { EntryRepository } from "@/lib/entries/entry-repository";
 import { MonthlySummary } from "@/lib/entries/monthly-summary";
+import { CategoryCatalog } from "@/lib/categories/category";
+import { categoryNameOf } from "@/lib/categories/category-labels";
 import { dashboardRoutes } from "@/lib/roles";
+import { loadShopCatalogOnce } from "@/lib/shop-catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({
@@ -54,24 +58,31 @@ async function SummaryContent({ params, searchParams }: PageProps<"/[locale]/das
   const defaultMonth = monthOf(utcIsoDate());
   const month = parseMonthParam((await searchParams).month, defaultMonth);
 
-  const entries = new EntryRepository(await createSupabaseServerClient());
+  const supabase = await createSupabaseServerClient();
+  const entries = new EntryRepository(supabase);
   const businessId = membership.business.id;
-  const [current, previous] = await Promise.all([
+  const [current, previous, shop, tCategory] = await Promise.all([
     entries.listMonthForSummary(businessId, month),
     entries.listMonthForSummary(businessId, shiftMonth(month, -1)),
+    loadShopCatalogOnce(supabase, businessId),
+    getTranslations({ locale, namespace: "categories" }),
   ]);
-  const summary = new MonthlySummary(month, current.entries, previous.entries);
+  // The shop's own categories decide which costs are hidden costs (Settings → Categories).
+  const catalog = new CategoryCatalog(shop.categories, (key) => categoryNameOf(tCategory, key));
+  const summary = new MonthlySummary(catalog, month, current.entries, previous.entries);
 
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
       <CurrencyProvider currency={membership.business.currency}>
-        <SummaryView
-          role={membership.role}
-          snapshot={summary.toSnapshot()}
-          defaultMonth={defaultMonth}
-          truncated={current.truncated}
-        />
+        <ShopCatalogProvider categories={shop.categories} products={shop.products}>
+          <SummaryView
+            role={membership.role}
+            snapshot={summary.toSnapshot()}
+            defaultMonth={defaultMonth}
+            truncated={current.truncated}
+          />
+        </ShopCatalogProvider>
       </CurrencyProvider>
     </div>
   );

@@ -2,18 +2,23 @@
 
 import { ClockIcon, LockIcon, Trash2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { useCalcFormat } from "@/components/calculators/use-calc-format";
+import { CategoryIcon } from "@/components/category-icon";
+import { useCategoryCatalog, useProducts } from "@/components/shop-catalog-context";
 import { useDateLabels } from "@/components/use-date-labels";
 import { Button } from "@/components/ui/button";
-import { isHiddenCost, type Category } from "@/config/categories";
 import { addDays, type IsoDate } from "@/lib/dates";
 import type { BookEntry, DayGroup } from "@/lib/entries/entry-book";
+import { formatQuantity } from "@/lib/products/quantity";
 import { cn } from "@/lib/utils";
 
 /** What the list shows of one entry. */
 export type ListEntry = BookEntry & {
-  category: Category;
   note: string | null;
+  /** The product sold or bought, and how many (Part D8). */
+  productId?: string | null;
+  quantity?: number | null;
   /** Added offline: still waiting on this phone to be sent. */
   pending?: boolean;
   /** Cannot be changed by this person (Staff: only today's entries, Part C1.3). */
@@ -49,7 +54,10 @@ export function EntryList<Entry extends ListEntry>({
   const t = useTranslations("myBusiness");
   const tEntry = useTranslations("entry");
   const tEntries = useTranslations("entries");
-  const tCategory = useTranslations("categories");
+  const tUnits = useTranslations("units");
+  const catalog = useCategoryCatalog();
+  const products = useProducts();
+  const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
   const dates = useDateLabels();
   const { money } = useCalcFormat();
 
@@ -85,15 +93,23 @@ export function EntryList<Entry extends ListEntry>({
               {day.entries.map((entry) => {
                 const isIncome = entry.type === "income";
                 const amount = money(entry.amountCents);
-                const category = tCategory(entry.category);
+                const categoryView = catalog.resolve(entry.category, entry.type);
+                const category = categoryView.label;
+                const product = entry.productId ? productsById.get(entry.productId) : undefined;
                 // A waiting entry is not in the account yet, so it cannot be changed here.
                 const canSelect = Boolean(onSelect) && !entry.locked && !entry.pending;
 
                 const content = (
                   <>
+                    <CategoryIcon icon={categoryView.icon} color={categoryView.color} />
                     <div className="min-w-0 flex-1 text-left">
                       <p className="font-medium">{category}</p>
-                      {entry.type === "expense" && isHiddenCost(entry.category) && (
+                      {product && entry.quantity ? (
+                        <p className="truncate text-sm text-muted-foreground">
+                          {product.name} × {formatQuantity(entry.quantity)} {tUnits(product.unit)}
+                        </p>
+                      ) : null}
+                      {catalog.isHiddenCost(entry.category, entry.type) && (
                         <p className="text-xs text-muted-foreground">{tEntries("hiddenCost")}</p>
                       )}
                       {entry.pending && (

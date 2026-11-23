@@ -6,6 +6,7 @@ import {
   HomeIcon,
   ListChecksIcon,
   ListIcon,
+  PackageIcon,
   PlusCircleIcon,
   SettingsIcon,
   type LucideIcon,
@@ -19,6 +20,7 @@ const ICONS: Record<NavKey, LucideIcon> = {
   home: HomeIcon,
   add: PlusCircleIcon,
   summary: BarChart3Icon,
+  products: PackageIcon,
   settings: SettingsIcon,
   today: CalendarCheckIcon,
   myEntries: ListChecksIcon,
@@ -35,8 +37,14 @@ const READY = new Set<DashboardRoute>([
   dashboardRoutes.add,
   dashboardRoutes.entries,
   dashboardRoutes.summary,
+  dashboardRoutes.products,
   dashboardRoutes.settings,
 ]);
+
+/** A menu item stays highlighted on its sub-pages too (Settings → Categories keeps "Settings" lit). */
+function isActive(pathname: string, href: DashboardRoute): boolean {
+  return pathname === href || (href !== dashboardRoutes.home && pathname.startsWith(`${href}/`));
+}
 
 interface DashboardNavProps {
   role: MemberRole;
@@ -52,7 +60,8 @@ interface DashboardNavProps {
 export function DashboardNav({ role, variant }: DashboardNavProps) {
   const t = useTranslations("appNav");
   const pathname = usePathname();
-  const items = NAV[role];
+  // The phone's bottom bar has room for four labels; sidebar-only items (Products) live in the laptop menu.
+  const items = variant === "tabs" ? NAV[role].filter((item) => !item.sidebarOnly) : NAV[role];
 
   if (variant === "tabs") {
     return (
@@ -63,7 +72,7 @@ export function DashboardNav({ role, variant }: DashboardNavProps) {
         <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
           {items.map(({ href, key }) => {
             const Icon = ICONS[key];
-            const active = pathname === href;
+            const active = isActive(pathname, href);
             const content = (
               <>
                 <Icon aria-hidden="true" className="size-6" />
@@ -111,7 +120,7 @@ export function DashboardNav({ role, variant }: DashboardNavProps) {
       <ul className="sticky top-24 space-y-1">
         {items.map(({ href, key }) => {
           const Icon = ICONS[key];
-          const active = pathname === href;
+          const active = isActive(pathname, href);
           const itemClass = "flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 font-medium";
 
           return (

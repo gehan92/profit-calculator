@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { useCalcFormat } from "@/components/calculators/use-calc-format";
 import { useToday } from "@/components/my-business/use-today";
+import { useCategoryCatalog } from "@/components/shop-catalog-context";
 import { useDateLabels } from "@/components/use-date-labels";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
@@ -40,7 +41,7 @@ export function SummaryView({ role, snapshot, defaultMonth, truncated }: Summary
   const tBusiness = useTranslations("myBusiness");
   const tCalc = useTranslations("calcUi");
   const tEntries = useTranslations("entries");
-  const tCategory = useTranslations("categories");
+  const catalog = useCategoryCatalog();
   const format = useFormatter();
   const dates = useDateLabels();
   const { money } = useCalcFormat();
@@ -204,7 +205,7 @@ export function SummaryView({ role, snapshot, defaultMonth, truncated }: Summary
                 {snapshot.topCosts.map((cost) => (
                   <li key={cost.category} className="space-y-1.5">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="font-medium">{tCategory(cost.category)}</span>
+                      <span className="font-medium">{catalog.label(cost.category, "expense")}</span>
                       <span className="money text-sm text-muted-foreground">
                         {money(cost.amountCents)} · {percent(cost.percent)}
                       </span>

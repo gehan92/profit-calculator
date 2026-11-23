@@ -8,9 +8,10 @@ import { addEntry } from "@/actions/entries";
 import { MoneyInput } from "@/components/calculators/number-field";
 import { useCalcFormat } from "@/components/calculators/use-calc-format";
 import { useToday } from "@/components/my-business/use-today";
+import { useCategoryCatalog } from "@/components/shop-catalog-context";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
-import { HIDDEN_COST_CATEGORIES, type HiddenCostCategory } from "@/config/categories";
+import type { CategoryView } from "@/lib/categories/category";
 import { addDays, firstDayOfMonth, monthOf, shiftMonth, type IsoDate } from "@/lib/dates";
 import type { Totals } from "@/lib/entries/entry-book";
 import type { HiddenCost } from "@/lib/entries/monthly-summary";
@@ -37,7 +38,7 @@ interface RealProfitCardProps {
  */
 export function RealProfitCard({ month, totals, hiddenCosts, canAdd }: RealProfitCardProps) {
   const t = useTranslations("summary");
-  const tCategory = useTranslations("categories");
+  const catalog = useCategoryCatalog();
   const { money } = useCalcFormat();
   const [whyOpen, setWhyOpen] = useState(false);
   const whyId = useId();
@@ -93,7 +94,7 @@ export function RealProfitCard({ month, totals, hiddenCosts, canAdd }: RealProfi
               .filter((cost) => cost.amountCents > 0)
               .map((cost) => (
                 <div key={cost.category} className="flex items-baseline justify-between gap-3">
-                  <dt className="text-muted-foreground">− {tCategory(cost.category)}</dt>
+                  <dt className="text-muted-foreground">− {catalog.label(cost.category, "expense")}</dt>
                   <dd className="money font-medium text-loss">{money(cost.amountCents)}</dd>
                 </div>
               ))}
@@ -125,6 +126,10 @@ export function RealProfitCard({ month, totals, hiddenCosts, canAdd }: RealProfi
 function HiddenCostChecklist({ month }: { month: string }) {
   const t = useTranslations("summary");
   const today = useToday();
+  // The costs the owner has marked as hidden costs (Transport, Family use… unless changed in Settings → Categories).
+  const hiddenCategories = useCategoryCatalog()
+    .options("expense")
+    .filter((category) => category.countsAs === "hidden_cost");
 
   // A past month has no "today": its costs go on the month's last day.
   const lastDay = addDays(firstDayOfMonth(shiftMonth(month, 1)), -1);
@@ -137,8 +142,8 @@ function HiddenCostChecklist({ month }: { month: string }) {
         <p className="mt-1 text-sm text-pretty text-muted-foreground">{t("quickAddBody")}</p>
       </div>
       <ul className="space-y-4">
-        {HIDDEN_COST_CATEGORIES.map((category) => (
-          <li key={category}>
+        {hiddenCategories.map((category) => (
+          <li key={category.ref}>
             <QuickAddRow category={category} entryDate={entryDate} />
           </li>
         ))}
@@ -147,9 +152,8 @@ function HiddenCostChecklist({ month }: { month: string }) {
   );
 }
 
-function QuickAddRow({ category, entryDate }: { category: HiddenCostCategory; entryDate: IsoDate | null }) {
+function QuickAddRow({ category, entryDate }: { category: CategoryView; entryDate: IsoDate | null }) {
   const t = useTranslations("summary");
-  const tCategory = useTranslations("categories");
   const tEntry = useTranslations("entry");
   const tAddEntry = useTranslations("addEntry");
   const [value, setValue] = useState("");
@@ -173,11 +177,11 @@ function QuickAddRow({ category, entryDate }: { category: HiddenCostCategory; en
     setSaving(true);
     try {
       const result = await addEntry(
-        { type: "expense", category, amountCents: amount.cents, entryDate, note: null },
+        { type: "expense", category: category.ref, amountCents: amount.cents, entryDate, note: null, productId: null, quantity: null },
         crypto.randomUUID(),
       );
       if (result.ok) {
-        toast.success(t("costAdded", { category: tCategory(category) }));
+        toast.success(t("costAdded", { category: category.label }));
         // The page refreshes with the new totals and this checklist goes away.
       } else {
         toast.error(
@@ -205,7 +209,7 @@ function QuickAddRow({ category, entryDate }: { category: HiddenCostCategory; en
     >
       <MoneyInput
         id={id}
-        label={tCategory(category)}
+        label={category.label}
         value={value}
         onValueChange={(next) => {
           setValue(next);
