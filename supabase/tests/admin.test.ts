@@ -485,7 +485,8 @@ describe("Feedback inbox and settings (Part D4)", () => {
   });
 
   it("everyone can read the settings, only the Admin can change them", async () => {
-    expect(await db.as(ids.owner, (s) => count(s, "select 1 from app_settings"))).toBe(8);
+    // 7 settings: the old `features` row was removed in migration 0012 (the feature_flags table replaces it).
+    expect(await db.as(ids.owner, (s) => count(s, "select 1 from app_settings"))).toBe(7);
     expect(await db.as(null, (s) => count(s, "select 1 from app_settings where key = 'maintenance'"))).toBe(1);
 
     const change = (who: string) =>
